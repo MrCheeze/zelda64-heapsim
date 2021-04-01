@@ -4,6 +4,7 @@ import os
 import queue
 import threading
 import multiprocessing
+import random
 from . import actors
 
 dirname = os.path.dirname(__file__) + '/'
@@ -31,21 +32,20 @@ class GameState:
         self.headerSize = 0x30 if self.console=='N64' else 0x10
         self.flags = startFlags
 
-    def loadScene(self, sceneId, setupId, roomId):
+    def loadScene(self, sceneId, roomId):
         if 'ALL' in sceneInfo[self.game][sceneId]:
-            self.setupData = sceneInfo[self.game][sceneId]['ALL'][setupId]
+            sceneData = sceneInfo[self.game][sceneId]['ALL']
         elif self.game in sceneInfo[self.game][sceneId]:
-            self.setupData = sceneInfo[self.game][sceneId][self.game][setupId]
+            sceneData = sceneInfo[self.game][sceneId][self.game]
         else:
-            self.setupData = sceneInfo[self.game][sceneId][self.version][setupId]
+            sceneData = sceneInfo[self.game][sceneId][self.version]
+        setupId = self.flags['adult']*2 + self.flags['night']*1
+        while sceneData[setupId] is None:
+            setupId -= 1
+        self.setupData = sceneData[setupId]
         self.sceneId = sceneId
-        self.setupId = setupId
         
-        self.loadedObjects = set([0x0001])
-        if setupId not in [2,3]:
-            self.loadedObjects.add(0x0015) # object_link_child
-        if setupId not in [0,1]:
-            self.loadedObjects.add(0x0014) # object_link_boy
+        self.loadedObjects = set([0x0001, 0x0014, 0x0015])
         specialObject = self.setupData['specialObject']
         if specialObject != 0:
             self.loadedObjects.add(specialObject)
@@ -79,7 +79,6 @@ class GameState:
             nodeAddr = self.ram[nodeAddr].nextNodeAddr
 
     def loadRoom(self, roomId, unloadOthersImmediately=False, forceToStayLoaded=()):
-
         for transitionActor in self.setupData['transitionActors']:
             if (transitionActor['frontRoom'] == roomId or transitionActor['backRoom'] == roomId) and transitionActor['frontRoom'] not in self.loadedRooms and transitionActor['backRoom'] not in self.loadedRooms:
                 self.allocActor(transitionActor['actorId'], [transitionActor['frontRoom'],transitionActor['backRoom']])
@@ -104,7 +103,10 @@ class GameState:
             else:
                 loadedActor = self.allocActor(actor['actorId'], [roomId], actor['actorParams'], actor['position'])
                 actorsToInit.append(loadedActor)
-                actorsToUpdate[actorType].append(loadedActor)
+                if loadedActor.actorId == actors.En_Md and len(self.loadedRooms) > 0: # hack hack hack
+                    self.updateFunction(loadedActor)
+                else:
+                    actorsToUpdate[actorType].append(loadedActor)
 
         for actorType in range(12):
             for loadedActor in actorsToInit:
@@ -126,6 +128,8 @@ class GameState:
         self.loadedRooms = set([roomId])
             
         for node in self.heap():
+            if node.actorId == actors.En_Skj:
+                node.active = True
             if not node.free and node.rooms != 'ALL':
                 if node.addr in forceToStayLoaded:
                     node.rooms = 'FORCE_STAY_LOADED'
@@ -151,11 +155,11 @@ class GameState:
             actorState['loadedOverlay'] = overlayNode.addr
 
         instanceNode = self.alloc(actorDef['instanceSize'], 'Actor %04X %s (%04X)'%(actorId,actorDef['name'],actorParams))
-        instanceNode.rooms = rooms
+        instanceNode.rooms = tuple(rooms) if type(rooms) is list else rooms
         instanceNode.nodeType = 'INSTANCE'
         instanceNode.actorId = actorId
         instanceNode.actorParams = actorParams
-        instanceNode.position = position
+        instanceNode.position = tuple(position)
 
         actorState['numLoaded'] += 1
 
@@ -164,6 +168,28 @@ class GameState:
     def allocMultipleActors(self, actorId, count, rooms='ALL', actorParams=0x0000, position=(0,0,0)):
         for i in range(count):
             self.allocActor(actorId, rooms, actorParams, position)
+
+    def songOfStorms(self, roomId):
+        oca = self.allocActor(actors.Oceff_Storm)
+        rain = self.allocActor(actors.En_Okarina_Effect, rooms=[roomId])
+        self.dealloc(oca.addr)
+        return rain
+
+    def loadAllNeedles(self, rooms):
+        for node in self.heap():
+            if node.actorId == actors.En_Skj and node.active:
+                self.allocMultipleActors(actors.En_Skjneedle, node.numNeedlesRemaining, rooms)
+                node.numNeedlesRemaining = 0
+        for node in self.heap():
+            if node.actorId == actors.En_Skj and node.active:
+                self.dealloc(node.addr)
+
+    def loadNeedles(self, skullKidAddr, rooms):
+        node = self.ram[skullKidAddr]
+        self.allocMultipleActors(actors.En_Skjneedle, 3, rooms)
+        node.numNeedlesRemaining -= 3
+        if node.numNeedlesRemaining == 0:
+            self.dealloc(skullKidAddr)
 
     def alloc(self, allocSize, description):
         allocSize = allocSize + ((-allocSize)%0x10)
@@ -220,10 +246,10 @@ class GameState:
         elif node.actorId == actors.Door_Warp1 and node.actorParams == 0x0006:
             self.dealloc(node.addr)
 
-        elif node.actorId == actors.Obj_Bean and self.setupId in [2,3] and not self.flags['beanPlanted']:
+        elif node.actorId == actors.Obj_Bean and self.flags['adult'] and not self.flags['beanPlanted']:
             self.dealloc(node.addr)
 
-        elif node.actorId == actors.Bg_Spot02_Objects and self.setupId in [2,3] and node.actorParams == 0x0001:
+        elif node.actorId == actors.Bg_Spot02_Objects and self.flags['adult'] and node.actorParams == 0x0001:
             self.dealloc(node.addr)
 
         elif node.actorId == actors.En_Weather_Tag and node.actorParams == 0x1405:
@@ -250,6 +276,16 @@ class GameState:
             if collectibleFlag in self.flags['collectibleFlags']:
                 self.dealloc(node.addr)
 
+        elif node.actorId == actors.En_Skj:
+            node.numNeedlesRemaining = 21
+            if tuple(node.position) == (1265, -94, 420) or tuple(node.position) == (-1132, 80, -128):
+                node.active = False
+            else:
+                node.active = True
+
+        elif node.actorId == actors.En_Ko: # temp for lost woods
+            self.dealloc(node.addr)
+
     def updateFunction(self, node): ### Also incomplete -- This sim runs update on all actors just once after loading.
 
         if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa]:
@@ -259,13 +295,13 @@ class GameState:
 
         availableActions = []
 
+        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish,actors.Arms_Hook,actors.En_Okarina_Effect,actors.En_Skjneedle):
+            if actorId not in self.actorStates:
+                self.actorStates[actorId] = {'numLoaded':0}
+
         if len(self.loadedRooms) > 1:
             for room in self.loadedRooms:
                 availableActions.append(['unloadRoomsExcept', room])
-
-        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish):
-            if actorId not in self.actorStates:
-                self.actorStates[actorId] = {'numLoaded':0}
 
         if not carryingActor and self.actorStates[actors.En_M_Thunder]['numLoaded'] < 1:
         
@@ -275,39 +311,54 @@ class GameState:
             if self.flags['bomb'] and self.actorStates[actors.En_Bom]['numLoaded'] + self.actorStates[actors.En_Bom_Chu]['numLoaded'] < 3:
                 availableActions.append(['allocActor', actors.En_Bom])
 
-            if self.flags['bottle'] and self.actorStates[actors.En_Insect]['numLoaded'] < 1: # dropping more than 1 bugs is a mess
+            if self.flags['bottle'] and self.actorStates[actors.En_Insect]['numLoaded'] < 3: # dropping more than 1 bugs is a mess
                 availableActions.append(['allocMultipleActors', actors.En_Insect, 3])
 
-            if self.flags['bottle'] and self.actorStates[actors.En_Fish]['numLoaded'] < 1: # to a lesser extent, true for fish also
-                availableActions.append(['allocActor', actors.En_Fish])
+            #if self.flags['bottle'] and self.actorStates[actors.En_Fish]['numLoaded'] < 1: # to a lesser extent, true for fish also
+            #    availableActions.append(['allocActor', actors.En_Fish])
 
-            availableActions.append(['allocActor', actors.En_M_Thunder])
+            if self.flags['hookshot'] and self.actorStates[actors.Arms_Hook]['numLoaded'] < 1:
+                availableActions.append(['allocActor', actors.Arms_Hook])
 
-        if len(self.loadedRooms) == 1: # assume without loss of generality that we only despawn actors when not in loading transitions
+            if self.flags['storms'] and self.actorStates[actors.En_Okarina_Effect]['numLoaded'] < 1:
+                for room in self.loadedRooms:
+                    availableActions.append(['songOfStorms', room])
+
+            #availableActions.append(['allocActor', actors.En_M_Thunder])
               
-            for node in self.heap():
-                if not node.free and node.nodeType=='INSTANCE':
-                    
+        for node in self.heap():
+            if not node.free and node.nodeType=='INSTANCE':
+
+                if len(self.loadedRooms) == 1: # assume without loss of generality that we only despawn actors when not in loading transitions
+                
                     if node.rooms != 'ALL' and len(node.rooms) > 1 and len(self.loadedRooms) == 1: # This is a transition actor
                         for room in node.rooms:
-                            if room not in self.loadedRooms:
+                            if room not in self.loadedRooms and room not in [2,4]: # hack
                                 availableActions.append(['loadRoom', room])
 
-                    if node.actorId in [actors.En_Bom, actors.En_Bom_Chu, actors.En_Insect, actors.En_Fish, actors.En_M_Thunder]:
-                        availableActions.append(['dealloc', node.addr])
+                    #if node.actorId in [actors.En_Bom, actors.En_Bom_Chu, actors.En_Insect, actors.En_Fish, actors.En_M_Thunder, actors.En_Okarina_Effect]:
+                    #    availableActions.append(['dealloc', node.addr])
 
                     if not carryingActor and self.actorStates[actors.En_M_Thunder]['numLoaded'] < 1: # less safe assumption, but go with it for now...
               
                         if node.actorId in [actors.En_Wonder_Item, actors.En_Kusa, actors.Obj_Bombiwa]:
-                            availableActions.append(['dealloc', node.addr])
+                            if node.actorId != actors.Obj_Bombiwa: #hack hack
+                                availableActions.append(['dealloc', node.addr])
+
+                if node.actorId == actors.En_Skj:
+                    for room in self.loadedRooms: #(1265, -94, 420)
+                        if self.actorStates[actors.En_Insect]['numLoaded'] < 3:
+                            if node.numNeedlesRemaining >= 21 and node.active:
+                                availableActions.append(['loadAllNeedles', (room,)])
+                            if node.numNeedlesRemaining >= 3 and node.active:
+                                availableActions.append(['loadNeedles', node.addr, (room,)])
             
 
         return availableActions
 
-    def search(self, successFunction, carryingActor=False):
+    def search(self, successFunction, carryingActor=False, maxDepth=float('inf')):
 
         num_worker_threads = multiprocessing.cpu_count()
-        num_worker_threads = 12
 
         seenStates = set()
         maxActionCount = -1
@@ -316,14 +367,27 @@ class GameState:
         def worker():
             nonlocal ret
             while ret is None:
-                actionList = actionsQueue.get()
-                if actionList is None:
+                try:
+                    actionList_ = actionsQueue.get(timeout=5)
+                except queue.Empty:
                     return
+                if actionList_ == 'DONE':
+                    return
+
+                #print(actionList_)
+                actionList, bushrots, drawptrs = actionList_
 
                 nonlocal maxActionCount
                 if len(actionList) > maxActionCount:
                     maxActionCount = len(actionList)
                     print('--- %d ---\n'%maxActionCount,end='')
+                if len(actionList) > maxDepth:
+                    for i in range(num_worker_threads):
+                        actionsQueue.put('DONE')
+                    #print('giving up, too long.\n',end='')
+                    return
+
+                #print('%s\n'%(actionList,),end='')
                     
                 stateCopy = copy.deepcopy(self)
                 for action in actionList:
@@ -334,15 +398,19 @@ class GameState:
                 if stateHash not in seenStates:
                     seenStates.add(stateHash)
 
+                    stateCopy.bushrots = bushrots
+                    stateCopy.drawptrs = drawptrs
                     if successFunction(stateCopy):
                         print('Solved!!!\nSolved!!!\nSolved!!!\n',end='')
                         print('Solved!!!\nSolved!!!\nSolved!!!\n',end='')
                         print('Solved!!!\nSolved!!!\nSolved!!!\n',end='')
                         ret = (stateCopy, actionList)
+                        for i in range(num_worker_threads):
+                            actionsQueue.put('DONE')
                     else:
                         for action in stateCopy.getAvailableActions(carryingActor):
                             newActionList = actionList + (action,)
-                            actionsQueue.put(TupleWrapper(newActionList))
+                            actionsQueue.put((TupleWrapper(newActionList), stateCopy.bushrots, stateCopy.drawptrs))
 
                 actionsQueue.task_done()
 
@@ -354,7 +422,7 @@ class GameState:
             t.start()
             threads.append(t)
             
-        actionsQueue.put(TupleWrapper(()))
+        actionsQueue.put((TupleWrapper(()), set(), set()))
 
         for t in threads:
             t.join()
@@ -367,17 +435,19 @@ class GameState:
     def __hash__(self):
         stateHash = 0
         for node in self.heap():
-            stateHash = hash((stateHash, node.addr, node.description))
+            stateHash = hash((stateHash, node.addr, node.description, node.rooms))
         return stateHash
 
     def __deepcopy__(self, memo):
         selfCopy = copy.copy(self)
         selfCopy.loadedObjects = copy.copy(self.loadedObjects)
         selfCopy.loadedRooms = copy.copy(self.loadedRooms)
-        selfCopy.actorStates = copy.deepcopy(self.actorStates) # why is this necessary?
+        selfCopy.actorStates = copy.deepcopy(self.actorStates)
         selfCopy.ram = {}
         for node in self.heap():
             selfCopy.ram[node.addr] = copy.copy(node)
+        selfCopy.bushrots = self.bushrots.copy()
+        selfCopy.drawptrs = self.drawptrs.copy()
         return selfCopy
 
 class HeapNode:
@@ -403,16 +473,24 @@ class HeapNode:
 
 class TupleWrapper(tuple):
     def __lt__(self, other):
-        return len(self) < len(other)
+        if random.random() < 0.5:
+            return len(self) < len(other)
+        else:
+            return random.choice([True,False])
     def __le__(self, other):
-        return len(self) <= len(other)
-    def __eq__(self, other):
-        return len(self) == len(other)
-    def __ne__(self, other):
-        return len(self) != len(other)
+        if random.random() < 0.5:
+            return len(self) <= len(other)
+        else:
+            return random.choice([True,False])
     def __gt__(self, other):
-        return len(self) > len(other)
+        if random.random() < 0.5:
+            return len(self) > len(other)
+        else:
+            return random.choice([True,False])
     def __ge__(self, other):
-        return len(self) >= len(other)
+        if random.random() < 0.5:
+            return len(self) >= len(other)
+        else:
+            return random.choice([True,False])
 
 
