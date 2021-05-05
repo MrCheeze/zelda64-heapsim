@@ -96,7 +96,7 @@ f2.close()
 
 for v in actors['OoT'][0]:
     f2 = open('csv/actors_%s.csv'%v,'w')
-    f2.write('Actor ID,Actor Name,Instance Size (without header),Overlay Size (without header),Instance Size (with header),Overlay Size (with header),Allocation Type\n')
+    f2.write('Actor ID,Actor Name,Instance Size (without header),Overlay Size (without header),Instance Size (with header),Overlay Size (with header),Allocation Type,Object ID\n')
     for i in range(len(actors['OoT'])):
         if 'instanceSize' in actors['OoT'][i][v]:
             instanceSize = actors['OoT'][i][v]['instanceSize']
@@ -107,9 +107,9 @@ for v in actors['OoT'][0]:
                 overlaySize += 1
             headerSize = {'GC':0x10,'N64':0x30}[versionDict[v]['console']]
             if overlaySize != 0:
-                f2.write("0x%04X,%s,0x%X,0x%X,0x%X,0x%X,%d\n"%(i,actors['OoT'][i][v]['name'],instanceSize,overlaySize,instanceSize+headerSize,overlaySize+headerSize,actors['OoT'][i][v]['allocType']))
+                f2.write("0x%04X,%s,0x%X,0x%X,0x%X,0x%X,%d,0x%04X\n"%(i,actors['OoT'][i][v]['name'],instanceSize,overlaySize,instanceSize+headerSize,overlaySize+headerSize,actors['OoT'][i][v]['allocType'],actors['OoT'][i][v]['objectId']))
             else:
-                f2.write("0x%04X,%s,0x%X,,0x%X,,%d\n"%(i,actors['OoT'][i][v]['name'],instanceSize,instanceSize+headerSize,actors['OoT'][i][v]['allocType']))
+                f2.write("0x%04X,%s,0x%X,,0x%X,,%d,0x%04X\n"%(i,actors['OoT'][i][v]['name'],instanceSize,instanceSize+headerSize,actors['OoT'][i][v]['allocType'],actors['OoT'][i][v]['objectId']))
         else:
             f2.write("0x%04X,%s,,,,,\n"%(i,actors['OoT'][i][v]['name']))
     f2.close()
