@@ -75,7 +75,9 @@ class GameState:
         
         self.loadRoom(roomId)
         if nl is not None:
-            self.initFunction(nl)
+            kill = self.initFunction(nl, True)
+            if kill:
+                self.dealloc(nl.addr)
 
     def heap(self):
         nodeAddr = self.heapStart
@@ -110,10 +112,16 @@ class GameState:
                 loadedActor = self.allocActor(actor['actorId'], [roomId], actor['actorParams'], actor['position'])
                 actorsToInit.append(loadedActor)
                 actorsToUpdate[actorType].append(loadedActor)
+                
+        isFirstLoad = len(self.loadedRooms) == 0
 
-        for actorType in range(12):
-            for loadedActor in actorsToInit:
-                self.initFunction(loadedActor)
+        killedActors = []
+        for loadedActor in actorsToInit:
+            kill = self.initFunction(loadedActor, isFirstLoad)
+            if kill:
+                killedActors.append(loadedActor)
+        for killedActor in killedActors:
+            self.dealloc(killedActor.addr)
 
         self.loadedRooms.add(roomId)
 
@@ -123,7 +131,7 @@ class GameState:
         for actorType in range(12):
             for loadedActor in actorsToUpdate[actorType]:
                 if not loadedActor.free:
-                    self.updateFunction(loadedActor)
+                    self.updateFunction(loadedActor, isFirstLoad)
 
     def unloadRoomsExcept(self, roomId, forceToStayLoaded=()):
 
@@ -212,65 +220,72 @@ class GameState:
                 
         node.reset()
 
-    def initFunction(self, node): ### Incomplete -- need to add all behaviour here that matters for heap manip.
+    def initFunction(self, node, isFirstLoad): ### Incomplete -- need to add all behaviour here that matters for heap manip.
+
+        kill = False
 
         if node.actorId == actors.En_River_Sound and node.actorParams==0x000C and (not self.flags['lullaby'] or self.flags['saria']): # Proximity Saria's Song
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.Object_Kankyo:
             node.rooms = 'ALL'
             if self.actorStates[node.actorId]['numLoaded'] > 1 and node.actorParams != 0x0004:
-                self.dealloc(node.addr)
+                kill = True
 
         elif node.actorId == actors.Door_Warp1 and node.actorParams == 0x0006:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.Obj_Bean and self.setupId in [2,3] and not self.flags['beanPlanted']:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.Bg_Spot02_Objects and self.setupId in [2,3] and node.actorParams == 0x0001:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.En_Weather_Tag and node.actorParams == 0x1405:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.En_Wonder_Item:
             wonderItemType = node.actorParams >> 0xB
             switchFlag = node.actorParams & 0x003F
             if wonderItemType == 1 or wonderItemType == 6 or wonderItemType > 9:
-                self.dealloc(node.addr)
+                kill = True
             elif switchFlag in self.flags['switchFlags']:
-                self.dealloc(node.addr)
+                kill = True
 
         elif node.actorId == actors.En_Owl and self.sceneId == 0x5B and (not self.flags['lullaby']):
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId in [actors.Obj_Bombiwa, actors.En_Wonder_Talk2]:
             switchFlag = node.actorParams & 0x003F
             if switchFlag in self.flags['switchFlags']:
-                self.dealloc(node.addr)
+                kill = True
 
         elif node.actorId == actors.En_Item00:
             collectibleFlag = (node.actorParams & 0x3F00) // 0x100
             if collectibleFlag in self.flags['collectibleFlags']:
-                self.dealloc(node.addr)
+                kill = True
 
         elif node.actorId == actors.Obj_Oshihiki and node.actorParams == 0x2044:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.Bg_Breakwall and node.actorParams in [0x0007, 0xA01F]:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.Magic_Dark:
-            self.dealloc(node.addr)
+            kill = True
 
         elif node.actorId == actors.En_Ru1 and 2 in node.rooms and self.flags['rutoFellInHole']:
-            self.dealloc(node.addr)
+            kill = True
+            
+        elif node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and isFirstLoad:
+            self.allocActor(actors.En_Elf, rooms=node.rooms)
+
+        return kill
             
 
-    def updateFunction(self, node): ### Also incomplete -- This sim runs update on all actors just once after loading.
+    def updateFunction(self, node, isFirstLoad): ### Also incomplete -- This sim runs update on all actors just once after loading.
 
-        if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa]:
+        if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
             self.allocActor(actors.En_Elf, rooms=node.rooms)
 
     def getAvailableActions(self, carryingActor, disableInteractionWith=[], ignoreRooms={}): ### Also incomplete.

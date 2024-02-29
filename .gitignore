@@ -1,4 +1,4 @@
 *.z64
 *.dec
-roms/*/
+*/roms/*/
 __pycache__/
