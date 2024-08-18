@@ -4,7 +4,7 @@ import os
 import queue
 import threading
 import multiprocessing
-from . import actors
+from . import actors, mmactors
 
 dirname = os.path.dirname(__file__) + '/'
 f=open(dirname+'/actors.json')
@@ -31,7 +31,7 @@ class GameState:
         self.headerSize = 0x30 if self.console=='N64' else 0x10
         self.flags = startFlags
 
-    def loadScene(self, sceneId, setupId, roomId):
+    def loadScene(self, sceneId, setupId, roomId, dayNumber=None):
         if 'ALL' in sceneInfo[self.game][sceneId]:
             self.setupData = sceneInfo[self.game][sceneId]['ALL'][setupId]
         elif self.game in sceneInfo[self.game][sceneId]:
@@ -40,6 +40,7 @@ class GameState:
             self.setupData = sceneInfo[self.game][sceneId][self.version][setupId]
         self.sceneId = sceneId
         self.setupId = setupId
+        self.dayNumber = dayNumber
         
         self.loadedObjects = set([0x0001])
         if setupId not in [2,3]:
@@ -64,12 +65,18 @@ class GameState:
         self.ram = {}
         self.ram[self.heapStart] = HeapNode(self.heapStart, self.headerSize, 0x100000000-self.headerSize)
         
-        self.allocActor(actors.Player, 'ALL') # Link
-        self.alloc(0x2010, 'Get Item Object')
-        self.allocActor(actors.En_Elf, 'ALL') # Navi
         nl = None
-        if self.flags['spawnFromGameOver']:
-            nl = self.allocActor(actors.Magic_Dark, 'ALL') # Nayru's Love for 1 frame after game over
+        if self.game == "MM":
+            self.allocActor(mmactors.Player, 'ALL') # Link
+            self.alloc(0x2000, 'Get Item Object')
+            self.alloc(0x3800, 'Worn Mask Object')
+            self.allocActor(mmactors.En_Elf, 'ALL') # Navi
+        else:
+            self.allocActor(actors.Player, 'ALL') # Link
+            self.alloc(0x2010, 'Get Item Object')
+            self.allocActor(actors.En_Elf, 'ALL') # Navi
+            if self.flags['spawnFromGameOver']:
+                nl = self.allocActor(actors.Magic_Dark, 'ALL') # Nayru's Love for 1 frame after game over
 
         self.loadedRooms = set()
         
@@ -104,7 +111,9 @@ class GameState:
         for actor in self.setupData['rooms'][roomId]['actors']:
             actorId = actor['actorId']
             actorType = self.actorDefs[actorId]['actorType']
-            if actorType == ACTORTYPE_ENEMY and currentRoomClear:
+            if self.game == "MM" and not actor['spawnTime'][2*self.dayNumber]:
+                continue
+            elif actorType == ACTORTYPE_ENEMY and currentRoomClear:
                 continue
             elif self.actorDefs[actorId]['objectId'] not in self.loadedObjects:
                 continue
@@ -243,74 +252,85 @@ class GameState:
 
         kill = False
 
-        if node.actorId == actors.En_River_Sound and node.actorParams==0x000C and (not self.flags['lullaby'] or self.flags['saria']): # Proximity Saria's Song
-            kill = True
-
-        elif node.actorId == actors.Object_Kankyo:
-            node.rooms = 'ALL'
-            if self.actorStates[node.actorId]['numLoaded'] > 1 and node.actorParams != 0x0004:
+        if self.game == "OoT":
+            if node.actorId == actors.En_River_Sound and node.actorParams==0x000C and (not self.flags['lullaby'] or self.flags['saria']): # Proximity Saria's Song
                 kill = True
 
-        elif node.actorId == actors.Door_Warp1 and node.actorParams == 0x0006:
-            kill = True
+            elif node.actorId == actors.Object_Kankyo:
+                node.rooms = 'ALL'
+                if self.actorStates[node.actorId]['numLoaded'] > 1 and node.actorParams != 0x0004:
+                    kill = True
 
-        elif node.actorId == actors.Obj_Bean and self.setupId in [2,3] and not self.flags['beanPlanted']:
-            kill = True
-
-        elif node.actorId == actors.Bg_Spot02_Objects and self.setupId in [2,3] and node.actorParams == 0x0001:
-            kill = True
-
-        elif node.actorId == actors.En_Weather_Tag and node.actorParams == 0x1405:
-            kill = True
-
-        elif node.actorId == actors.En_Wonder_Item:
-            wonderItemType = node.actorParams >> 0xB
-            switchFlag = node.actorParams & 0x003F
-            if wonderItemType == 1 or wonderItemType == 6 or wonderItemType > 9:
-                kill = True
-            elif switchFlag in self.flags['switchFlags']:
+            elif node.actorId == actors.Door_Warp1 and node.actorParams == 0x0006:
                 kill = True
 
-        elif node.actorId == actors.En_Owl and self.sceneId == 0x5B and (not self.flags['lullaby']):
-            kill = True
-
-        elif node.actorId in [actors.Obj_Bombiwa, actors.En_Wonder_Talk2]:
-            switchFlag = node.actorParams & 0x003F
-            if switchFlag in self.flags['switchFlags']:
+            elif node.actorId == actors.Obj_Bean and self.setupId in [2,3] and not self.flags['beanPlanted']:
                 kill = True
 
-        elif node.actorId == actors.En_Item00:
-            collectibleFlag = (node.actorParams & 0x3F00) // 0x100
-            if collectibleFlag in self.flags['collectibleFlags']:
+            elif node.actorId == actors.Bg_Spot02_Objects and self.setupId in [2,3] and node.actorParams == 0x0001:
                 kill = True
 
-        elif node.actorId == actors.Obj_Oshihiki and node.actorParams == 0x2044:
-            kill = True
+            elif node.actorId == actors.En_Weather_Tag and node.actorParams == 0x1405:
+                kill = True
 
-        elif node.actorId == actors.Bg_Breakwall and node.actorParams in [0x0007, 0xA01F]:
-            kill = True
+            elif node.actorId == actors.En_Wonder_Item:
+                wonderItemType = node.actorParams >> 0xB
+                switchFlag = node.actorParams & 0x003F
+                if wonderItemType == 1 or wonderItemType == 6 or wonderItemType > 9:
+                    kill = True
+                elif switchFlag in self.flags['switchFlags']:
+                    kill = True
 
-        elif node.actorId == actors.Magic_Dark:
-            kill = True
+            elif node.actorId == actors.En_Owl and self.sceneId == 0x5B and (not self.flags['lullaby']):
+                kill = True
 
-        elif node.actorId == actors.En_Ru1 and 2 in node.rooms and self.flags['rutoFellInHole']:
-            kill = True
-            
-        elif node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and isFirstLoad:
-            self.allocActor(actors.En_Elf, rooms=node.rooms)
-            
-        elif node.actorId in [actors.Obj_Mure, actors.Obj_Mure2, actors.Obj_Mure3]:
-            node.spawnedChildren = ()
+            elif node.actorId in [actors.Obj_Bombiwa, actors.En_Wonder_Talk2]:
+                switchFlag = node.actorParams & 0x003F
+                if switchFlag in self.flags['switchFlags']:
+                    kill = True
+
+            elif node.actorId == actors.En_Item00:
+                collectibleFlag = (node.actorParams & 0x3F00) // 0x100
+                if collectibleFlag in self.flags['collectibleFlags']:
+                    kill = True
+
+            elif node.actorId == actors.Obj_Oshihiki and node.actorParams == 0x2044:
+                kill = True
+
+            elif node.actorId == actors.Bg_Breakwall and node.actorParams in [0x0007, 0xA01F]:
+                kill = True
+
+            elif node.actorId == actors.Magic_Dark:
+                kill = True
+
+            elif node.actorId == actors.En_Ru1 and 2 in node.rooms and self.flags['rutoFellInHole']:
+                kill = True
+                
+            elif node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and isFirstLoad:
+                self.allocActor(actors.En_Elf, rooms=node.rooms)
+                
+            elif node.actorId in [actors.Obj_Mure, actors.Obj_Mure2, actors.Obj_Mure3]:
+                node.spawnedChildren = ()
+        else: # MM
+
+            if node.actorId == mmactors.En_Test4:
+                node.rooms = 'ALL'
+                if self.actorStates[mmactors.En_Test4]['numLoaded'] > 1:
+                    kill = True
 
         return kill
             
 
     def updateFunction(self, node, isFirstLoad): ### Also incomplete -- This sim runs update on all actors just once after loading.
 
-        if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
-            self.allocActor(actors.En_Elf, rooms=node.rooms)
+        if self.game == "OoT":
+            if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
+                self.allocActor(actors.En_Elf, rooms=node.rooms)
 
     def getAvailableActions(self, carryingActor, disableInteractionWith=[], ignoreRooms={}): ### Also incomplete.
+
+        if self.game == "MM":
+            return self.getAvailableActionsMM(carryingActor, disableInteractionWith=[], ignoreRooms={})
 
         availableActions = set()
 
@@ -405,6 +425,35 @@ class GameState:
                             if node.actorParams & 0xE000 == 0x4000:
                                 availableActions.add(('allocMultipleActors', actors.En_Item00, 7, tuple(node.rooms), 0x4000, (0,0,0), node.addr))
             
+
+        return availableActions
+
+    def getAvailableActionsMM(self, carryingActor, disableInteractionWith=[], ignoreRooms={}): ### Also incomplete.
+        availableActions = set()
+
+        if len(self.loadedRooms) > 1:
+            for room in self.loadedRooms:
+                availableActions.add(('unloadRoomsExcept', room))
+
+        for actorId in (mmactors.En_M_Thunder,mmactors.Arms_Hook):
+            if actorId not in self.actorStates:
+                self.actorStates[actorId] = {'numLoaded':0}
+        
+        if len(self.loadedRooms) == 1: # assume without loss of generality that we only despawn actors when not in loading transitions
+              
+            for node in self.heap():
+                if not node.free and node.nodeType=='INSTANCE' and node.actorId not in disableInteractionWith:
+                    
+                    if node.rooms != 'ALL' and len(node.rooms) > 1 and len(self.loadedRooms) == 1: # This is a transition actor
+                        for room in node.rooms:
+                            if room not in self.loadedRooms and room not in ignoreRooms:
+                                if node.actorId == mmactors.En_Holl:
+                                    availableActions.add(('changeRoom', room))
+                                    
+                    if not carryingActor and self.actorStates[mmactors.En_M_Thunder]['numLoaded'] < 1 and self.actorStates[mmactors.Arms_Hook]['numLoaded'] < 1:
+              
+                        if node.actorId in [mmactors.En_Kusa]:
+                            availableActions.add(('dealloc', node.addr))
 
         return availableActions
 
