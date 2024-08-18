@@ -17,6 +17,7 @@ versions = [
     {'name':"OoT-J-GC-CEDisc",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (GC) [Collector\'s Edition Disc].dec','actortable':0xB5CB40,'scenetable':0xB6FB00,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
     {'name':"OoT-iQue",'filename':'Zelda Chuanshuo Shiguang Zhi Di 00200f70 (zh-CN) (iQue).dec','actortable':0xB87180,'scenetable':0xB9A120,'heapStart':0x801E7F60,'console':'GC','game':'OoT', 'variation':'VANILLA'},
     {'name':"MM-U",'filename':'Legend of Zelda, The - Majora\'s Mask (USA).dec','actortable':0xC45510,'scenetable':0xC5A1E0,'heapStart':0x803FFDA0,'console':'N64','game':'MM', 'variation': None},
+    {'name':"MM-J-1.1",'filename':'Zelda no Densetsu - Mujura no Kamen (Japan) (Rev A).dec','actortable':0xC61AC0,'scenetable':0xC767E0,'heapStart':0x80400230,'console':'N64','game':'MM', 'variation': None},
     ]
 
 actor_names = {

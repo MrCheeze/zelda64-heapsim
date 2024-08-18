@@ -138,5 +138,15 @@
 		"console": "N64",
 		"game": "MM",
 		"variation": null
+	},
+	"MM-J-1.1": {
+		"name": "MM-J-1.1",
+		"filename": "Zelda no Densetsu - Mujura no Kamen (Japan) (Rev A).dec",
+		"actortable": 12982976,
+		"scenetable": 13068256,
+		"heapStart": 2151678512,
+		"console": "N64",
+		"game": "MM",
+		"variation": null
 	}
 }
