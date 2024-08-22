@@ -311,6 +311,14 @@ class GameState:
                 
             elif node.actorId in [actors.Obj_Mure, actors.Obj_Mure2, actors.Obj_Mure3]:
                 node.spawnedChildren = ()
+                if node.actorId == actors.Obj_Mure2:
+                    if node.actorParams & 3 == 1: # bushes
+                        node.childCount = 12
+                    if node.actorParams & 3 == 2: # rocks
+                        node.childCount = 8
+                if node.actorId == actors.Obj_Mure3:
+                    if node.actorParams & 0xE000 == 0x4000:
+                        node.childCount = 7
         else: # MM
 
             if node.actorId == mmactors.En_Test4:
@@ -327,7 +335,7 @@ class GameState:
             if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
                 self.allocActor(actors.En_Elf, rooms=node.rooms)
 
-    def getAvailableActions(self, carryingActor, disableInteractionWith=[], ignoreRooms={}): ### Also incomplete.
+    def getAvailableActions(self, carryingActor, disableInteractionWith=[], ignoreRooms={}, disableInteractionWithAddrs=[]): ### Also incomplete.
 
         if self.game == "MM":
             return self.getAvailableActionsMM(carryingActor, disableInteractionWith=[], ignoreRooms={})
@@ -338,7 +346,7 @@ class GameState:
             for room in self.loadedRooms:
                 availableActions.add(('unloadRoomsExcept', room))
 
-        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish,actors.En_Boom,actors.En_Item00,actors.En_Ishi,actors.En_Kusa,actors.Arms_Hook):
+        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish,actors.En_Boom,actors.En_Item00,actors.En_Ishi,actors.En_Kusa,actors.Arms_Hook,actors.En_Arrow):
             if actorId not in self.actorStates:
                 self.actorStates[actorId] = {'numLoaded':0}
 
@@ -386,10 +394,16 @@ class GameState:
                 else:
                     availableActions.add(('allocActor', actors.En_Boom))
 
+            if self.flags['slingshot'] and self.actorStates[actors.En_Arrow]['numLoaded'] < 3:
+                if len(self.loadedRooms) == 1:
+                    availableActions.add(('allocActor', actors.En_Arrow, tuple(self.loadedRooms)))
+                else:
+                    availableActions.add(('allocActor', actors.En_Arrow))
+
         if len(self.loadedRooms) == 1: # assume without loss of generality that we only despawn actors when not in loading transitions
               
             for node in self.heap():
-                if not node.free and node.nodeType=='INSTANCE' and node.actorId not in disableInteractionWith:
+                if not node.free and node.nodeType=='INSTANCE' and node.actorId not in disableInteractionWith and node.addr not in disableInteractionWithAddrs:
                     
                     if node.rooms != 'ALL' and len(node.rooms) > 1 and len(self.loadedRooms) == 1: # This is a transition actor
                         for room in node.rooms:
@@ -399,12 +413,12 @@ class GameState:
                                 else:
                                     availableActions.add(('changeRoom', room))
 
-                    if node.actorId in [actors.En_Bom, actors.En_Bom_Chu, actors.En_Insect, actors.En_Fish, actors.En_M_Thunder, actors.En_Boom, actors.Arms_Hook, actors.En_Item00]:
+                    if node.actorId in [actors.En_Bom, actors.En_Bom_Chu, actors.En_Insect, actors.En_Fish, actors.En_M_Thunder, actors.En_Boom, actors.Arms_Hook, actors.En_Item00, actors.En_Arrow]:
                         availableActions.add(('dealloc', node.addr))
 
                     if not carryingActor and self.actorStates[actors.En_M_Thunder]['numLoaded'] < 1 and self.actorStates[actors.Arms_Hook]['numLoaded'] < 1: # less safe assumption, but go with it for now...
               
-                        if node.actorId in [actors.En_Wonder_Item, actors.En_Kusa, actors.En_Ishi, actors.Obj_Bombiwa, actors.Obj_Bombiwa, actors.En_Firefly, actors.Obj_Tsubo, actors.En_Okuta, actors.En_Bubble, actors.En_Bili, actors.Obj_Kibako]:
+                        if node.actorId in [actors.En_Wonder_Item, actors.En_Kusa, actors.En_Ishi, actors.Obj_Bombiwa, actors.En_Firefly, actors.Obj_Tsubo, actors.En_Okuta, actors.En_Bubble, actors.En_Bili, actors.Obj_Kibako]:
                             availableActions.add(('dealloc', node.addr))
                             
                         if node.actorId == actors.En_Kanban:
@@ -412,18 +426,20 @@ class GameState:
 
                     if node.actorId == actors.Obj_Mure2:
                         if node.spawnedChildren:
+                          #if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
                             availableActions.add(('unloadChildren', node.addr))
                         else:
                             if node.actorParams & 3 == 1: # bushes
-                                availableActions.add(('allocMultipleActors', actors.En_Kusa, 12, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
+                                availableActions.add(('allocMultipleActors', actors.En_Kusa, node.childCount, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
                             if node.actorParams & 3 == 2: # rocks
-                                availableActions.add(('allocMultipleActors', actors.En_Ishi, 8, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
+                                availableActions.add(('allocMultipleActors', actors.En_Ishi, node.childCount, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
                     if node.actorId == actors.Obj_Mure3:
                         if node.spawnedChildren:
+                          #if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
                             availableActions.add(('unloadChildren', node.addr))
                         else:
                             if node.actorParams & 0xE000 == 0x4000:
-                                availableActions.add(('allocMultipleActors', actors.En_Item00, 7, tuple(node.rooms), 0x4000, (0,0,0), node.addr))
+                                availableActions.add(('allocMultipleActors', actors.En_Item00, node.childCount, tuple(node.rooms), 0x4000, (0,0,0), node.addr))
             
 
         return availableActions
@@ -457,7 +473,7 @@ class GameState:
 
         return availableActions
 
-    def search(self, successFunction, carryingActor=False, disableInteractionWith=[], actionLimit=None, printProgress=True, num_worker_threads=None,ignoreRooms={}):
+    def search(self, successFunction, carryingActor=False, disableInteractionWith=[], actionLimit=None, printProgress=True, num_worker_threads=None,ignoreRooms={},disableInteractionWithAddrs=[]):
 
         if num_worker_threads is None:
             num_worker_threads = multiprocessing.cpu_count()
@@ -497,7 +513,7 @@ class GameState:
                             print('Solved!!!\nSolved!!!\nSolved!!!\n',end='')
                         ret = (stateCopy, actionList)
                     elif actionLimit is None or len(actionList) < actionLimit:
-                        for action in stateCopy.getAvailableActions(carryingActor, disableInteractionWith, ignoreRooms):
+                        for action in stateCopy.getAvailableActions(carryingActor, disableInteractionWith, ignoreRooms, disableInteractionWithAddrs):
                             newActionList = actionList + (action,)
                             actionsQueue.put(TupleWrapper(newActionList))
 
