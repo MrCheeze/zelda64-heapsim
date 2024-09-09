@@ -20,7 +20,7 @@ state.search(successFunction=checkGrottos, actionLimit=7, carryingActor=True)
 print("------------")
 '''
 
-state = GameState('MM', 'MM-J-1.1', {'clearedRooms':[]})
+state = GameState('MM', 'MM-J-1.0', {'clearedRooms':[],'sword':False,'bomb':False})
 state.loadScene(sceneId=0x64, setupId=0, roomId=1, dayNumber=4)
 
 totalActionLimit = 12

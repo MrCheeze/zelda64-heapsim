@@ -129,12 +129,12 @@
 		"game": "OoT",
 		"variation": "VANILLA"
 	},
-	"MM-U": {
-		"name": "MM-U",
-		"filename": "Legend of Zelda, The - Majora's Mask (USA).dec",
-		"actortable": 12866832,
-		"scenetable": 12952032,
-		"heapStart": 2151677344,
+	"MM-J-1.0": {
+		"name": "MM-J-1.0",
+		"filename": "Zelda no Densetsu - Mujura no Kamen (J) [!].dec",
+		"actortable": 12982208,
+		"scenetable": 13067536,
+		"heapStart": 2151677808,
 		"console": "N64",
 		"game": "MM",
 		"variation": null
@@ -145,6 +145,16 @@
 		"actortable": 12982976,
 		"scenetable": 13068256,
 		"heapStart": 2151678512,
+		"console": "N64",
+		"game": "MM",
+		"variation": null
+	},
+	"MM-U": {
+		"name": "MM-U",
+		"filename": "Legend of Zelda, The - Majora's Mask (USA).dec",
+		"actortable": 12866832,
+		"scenetable": 12952032,
+		"heapStart": 2151677344,
 		"console": "N64",
 		"game": "MM",
 		"variation": null

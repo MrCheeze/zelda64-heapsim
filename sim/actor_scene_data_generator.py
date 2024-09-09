@@ -16,8 +16,9 @@ versions = [
     {'name':"OoT-P-MQ",'filename':'Legend of Zelda, The - Ocarina of Time - Master Quest (PAL) (GC).dec','actortable':0xB5C480,'scenetable':0xB6F440,'heapStart':0x801D9360,'console':'GC','game':'OoT', 'variation':'MQ'},
     {'name':"OoT-J-GC-CEDisc",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (GC) [Collector\'s Edition Disc].dec','actortable':0xB5CB40,'scenetable':0xB6FB00,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
     {'name':"OoT-iQue",'filename':'Zelda Chuanshuo Shiguang Zhi Di 00200f70 (zh-CN) (iQue).dec','actortable':0xB87180,'scenetable':0xB9A120,'heapStart':0x801E7F60,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"MM-U",'filename':'Legend of Zelda, The - Majora\'s Mask (USA).dec','actortable':0xC45510,'scenetable':0xC5A1E0,'heapStart':0x803FFDA0,'console':'N64','game':'MM', 'variation': None},
+    {'name':"MM-J-1.0",'filename':'Zelda no Densetsu - Mujura no Kamen (J) [!].dec','actortable':0xC617C0,'scenetable':0xC76510,'heapStart':0x803FFF70,'console':'N64','game':'MM', 'variation': None},
     {'name':"MM-J-1.1",'filename':'Zelda no Densetsu - Mujura no Kamen (Japan) (Rev A).dec','actortable':0xC61AC0,'scenetable':0xC767E0,'heapStart':0x80400230,'console':'N64','game':'MM', 'variation': None},
+    {'name':"MM-U",'filename':'Legend of Zelda, The - Majora\'s Mask (USA).dec','actortable':0xC45510,'scenetable':0xC5A1E0,'heapStart':0x803FFDA0,'console':'N64','game':'MM', 'variation': None},
     ]
 
 actor_names = {
@@ -222,8 +223,8 @@ for v in versions:
                 elif sceneHeaderCommand == 0x0E: # Transition Actors
                     for transitionActorNum in range(sceneParam1):
                         transitionActorListStart = sceneRomStart + (sceneParam2&0x00FFFFFF)
-                        frontRoom, _, backRoom, _, actorId, _, _, _, _, actorParams = struct.unpack('>BBBBHHHHHH',rom[transitionActorListStart+0x10*transitionActorNum:transitionActorListStart+0x10*(transitionActorNum+1)])
-                        scenes[v['game']][sceneId][v['name']][setupId]['transitionActors'].append({'frontRoom':frontRoom,'backRoom':backRoom,'actorId':actorId,'actorParams':actorParams})
+                        frontRoom, _, backRoom, _, actorId, posX, posY, posZ, _, actorParams = struct.unpack('>BBBBHhhhHH',rom[transitionActorListStart+0x10*transitionActorNum:transitionActorListStart+0x10*(transitionActorNum+1)])
+                        scenes[v['game']][sceneId][v['name']][setupId]['transitionActors'].append({'frontRoom':frontRoom,'backRoom':backRoom,'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ)})
 
                 elif sceneHeaderCommand == 0x07: # Special Objects
                     assert sceneParam2 in [0,2,3]

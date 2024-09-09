@@ -30,6 +30,7 @@ class GameState:
         self.game = versionInfo[version]['game']
         self.headerSize = 0x30 if self.console=='N64' else 0x10
         self.flags = startFlags
+        self.heldActor = None
 
     def loadScene(self, sceneId, setupId, roomId, dayNumber=None):
         if 'ALL' in sceneInfo[self.game][sceneId]:
@@ -79,6 +80,7 @@ class GameState:
                 nl = self.allocActor(actors.Magic_Dark, 'ALL') # Nayru's Love for 1 frame after game over
 
         self.loadedRooms = set()
+        self.loadedTransitionActors = set()
         
         self.loadRoom(roomId)
         if nl is not None:
@@ -94,9 +96,24 @@ class GameState:
 
     def loadRoom(self, roomId, unloadOthersImmediately=False, forceToStayLoaded=()):
 
-        for transitionActor in self.setupData['transitionActors']:
-            if (transitionActor['frontRoom'] == roomId or transitionActor['backRoom'] == roomId) and transitionActor['frontRoom'] not in self.loadedRooms and transitionActor['backRoom'] not in self.loadedRooms:
-                self.allocActor(transitionActor['actorId'], [transitionActor['frontRoom'],transitionActor['backRoom']], transitionActor['actorParams'])
+        killedActors = []
+        actorsToUpdate = [[],[],[],[],[],[],[],[],[],[],[],[]] # separate by actor type
+
+        isFirstLoad = len(self.loadedRooms) == 0
+
+        nextLoadedRooms = self.loadedRooms | {roomId}
+            
+        for i, transitionActor in enumerate(self.setupData['transitionActors']):
+            if (transitionActor['frontRoom'] in nextLoadedRooms or transitionActor['backRoom'] in nextLoadedRooms) and i not in self.loadedTransitionActors:
+                actorId = transitionActor['actorId']
+                actorType = self.actorDefs[actorId]['actorType']
+                loadedActor = self.allocActor(actorId, (transitionActor['frontRoom'],transitionActor['backRoom']), transitionActor['actorParams'], transitionActor['position'])
+                actorsToUpdate[actorType].append(loadedActor)
+                self.loadedTransitionActors.add(i)
+                loadedActor.transitionActorId = i
+                kill = self.initFunction(loadedActor, isFirstLoad)
+                if kill:
+                    killedActors.append(loadedActor)
 
         currentRoomClear = False
         if roomId in self.flags['clearedRooms']:
@@ -105,9 +122,6 @@ class GameState:
         for obj in self.setupData['rooms'][roomId]['objects']:
             self.loadedObjects.add(obj)
 
-        actorsToInit = []
-        actorsToUpdate = [[],[],[],[],[],[],[],[],[],[],[],[]] # separate by actor type
-            
         for actor in self.setupData['rooms'][roomId]['actors']:
             actorId = actor['actorId']
             actorType = self.actorDefs[actorId]['actorType']
@@ -118,29 +132,29 @@ class GameState:
             elif self.actorDefs[actorId]['objectId'] not in self.loadedObjects:
                 continue
             else:
-                loadedActor = self.allocActor(actor['actorId'], [roomId], actor['actorParams'], actor['position'])
-                actorsToInit.append(loadedActor)
+                loadedActor = self.allocActor(actor['actorId'], (roomId,), actor['actorParams'], actor['position'])
                 actorsToUpdate[actorType].append(loadedActor)
+                kill = self.initFunction(loadedActor, isFirstLoad)
+                if kill:
+                    killedActors.append(loadedActor)
                 
-        isFirstLoad = len(self.loadedRooms) == 0
-
-        killedActors = []
-        for loadedActor in actorsToInit:
-            kill = self.initFunction(loadedActor, isFirstLoad)
-            if kill:
-                killedActors.append(loadedActor)
         for killedActor in killedActors:
             self.dealloc(killedActor.addr)
 
-        self.loadedRooms.add(roomId)
+        self.loadedRooms = nextLoadedRooms
 
         if unloadOthersImmediately:
             self.unloadRoomsExcept(roomId, forceToStayLoaded=forceToStayLoaded)
 
+        killedActors = []
         for actorType in range(12):
             for loadedActor in actorsToUpdate[actorType]:
                 if not loadedActor.free:
-                    self.updateFunction(loadedActor, isFirstLoad)
+                    kill = self.updateFunction(loadedActor, isFirstLoad)
+                    if kill:
+                        killedActors.append(loadedActor)
+        for killedActor in killedActors:
+            self.dealloc(killedActor.addr)
 
     def unloadRoomsExcept(self, roomId, forceToStayLoaded=()):
 
@@ -161,7 +175,7 @@ class GameState:
     def changeRoom(self, roomId, forceToStayLoaded=()):
         self.loadRoom(roomId, unloadOthersImmediately=True, forceToStayLoaded=forceToStayLoaded)
 
-    def allocActor(self, actorId, rooms='ALL', actorParams=0x0000, position=(0,0,0)):
+    def allocActor(self, actorId, rooms='ALL', actorParams=0x0000, position=(0,0,0), held=False):
 
         if actorId not in self.actorStates:
             self.actorStates[actorId] = {'numLoaded':0}
@@ -180,6 +194,10 @@ class GameState:
         instanceNode.position = position
         instanceNode.parent = None
 
+        if held:
+            assert self.heldActor is None
+            self.heldActor = instanceNode.addr
+
         actorState['numLoaded'] += 1
 
         return instanceNode
@@ -195,6 +213,12 @@ class GameState:
             parent = self.ram[parentAddr]
             assert not parent.spawnedChildren
             parent.spawnedChildren = tuple(children)
+
+    def allocAndInitActor(self, actorId, rooms='ALL', actorParams=0x0000, position=(0,0,0), held=False):
+        instanceNode = self.allocActor(actorId, rooms, actorParams, position, held)
+        assert not self.initFunction(instanceNode, False)
+        assert not self.updateFunction(instanceNode, False)
+        return instanceNode
 
     def alloc(self, allocSize, description):
         allocSize = allocSize + ((-allocSize)%0x10)
@@ -214,11 +238,16 @@ class GameState:
                 return node
         raise Exception('alloc should always succeed')
 
-    def dealloc(self, nodeAddr):
+    def dealloc(self, nodeAddr, nodeDesc=None):
         node = self.ram[nodeAddr]
         assert not node.free
+        if nodeDesc is not None:
+            assert node.description == nodeDesc
 
         if node.nodeType == 'INSTANCE':
+
+            self.destroyFunction(node)
+            
             actorDef = self.actorDefs[node.actorId]
             actorState = self.actorStates[node.actorId]
             actorState['numLoaded'] -= 1
@@ -228,6 +257,12 @@ class GameState:
             if node.parent:
                 parent = self.ram[node.parent]
                 parent.spawnedChildren = tuple([addr for addr in parent.spawnedChildren if addr != nodeAddr])
+
+            if self.heldActor == nodeAddr:
+                self.heldActor = None
+
+        if node.transitionActorId is not None:
+            self.loadedTransitionActors.remove(node.transitionActorId)
         
         if self.ram[node.nextNodeAddr].free:
             node.blockSize += self.headerSize + self.ram[node.nextNodeAddr].blockSize
@@ -241,6 +276,26 @@ class GameState:
                 self.ram[node.nextNodeAddr].prevNodeAddr = node.prevNodeAddr
                 
         node.reset()
+
+    def explode(self, nodeAddr, room, nodeDesc=None):
+        node = self.ram[nodeAddr]
+        if node.actorId == mmactors.En_Bom:
+            self.allocActor(mmactors.En_Clear_Tag, (room,), 0x0000, (0,0,0))
+        elif node.actorId == mmactors.Obj_Tsubo:
+            self.allocActor(mmactors.En_Item00, 'ALL', 0x0000, (0,0,0))
+        else:
+            assert False
+        self.dealloc(nodeAddr, nodeDesc)
+
+    def pickup(self, nodeAddr, nodeDesc=None):
+        node = self.ram[nodeAddr]
+        node.rooms = 'ALL'
+        self.heldActor = nodeAddr
+
+    def drop(self, nodeAddr, room, nodeDesc=None):
+        node = self.ram[nodeAddr]
+        node.rooms = (room,)
+        self.heldActor = None
 
     def unloadChildren(self, nodeAddr):
         node = self.ram[nodeAddr]
@@ -325,20 +380,66 @@ class GameState:
                 node.rooms = 'ALL'
                 if self.actorStates[mmactors.En_Test4]['numLoaded'] > 1:
                     kill = True
+            elif node.actorId == mmactors.En_Mnk:
+                if node.actorParams == 0x6B83:
+                    if self.version == 'MM-J-1.0':
+                        if self.actorStates[mmactors.En_Mnk]['numLoaded'] > 1:
+                            kill = True
+                        else:
+                            node.rooms = 'ALL'
+                    else:
+                        if not isFirstLoad:
+                            kill = True
+                        else:
+                            node.rooms = 'ALL'
+            elif node.actorId == mmactors.En_M_Thunder:
+                if self.flags['magic']:
+                    node.dust = self.allocActor(mmactors.Eff_Dust, 'ALL', 0x0000, (0,0,0)).addr
+                else:
+                    node.dust = None
+            elif node.actorId == mmactors.En_Kakasi and not isFirstLoad:
+                self.alloc(0xB0, 'SkelAnime')
+                self.alloc(0xB0, 'SkelAnime')
 
         return kill
             
 
     def updateFunction(self, node, isFirstLoad): ### Also incomplete -- This sim runs update on all actors just once after loading.
 
+        kill = False
+
         if self.game == "OoT":
             if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
                 self.allocActor(actors.En_Elf, rooms=node.rooms)
 
+        else: # MM
+            if node.actorId == mmactors.En_Holl:
+                if 1 <= int(self.dayNumber) <= 3 and (node.actorParams & 0x0380) == 0:
+                    dayFlags = node.actorParams & 7
+                    if not dayFlags & (1 << (int(self.dayNumber)-1)):
+                        kill = True
+            elif node.actorId == mmactors.En_Trt2:
+                node.skelAnime1 = self.alloc(0xB0, 'SkelAnime').addr
+                node.skelAnime2 = self.alloc(0xB0, 'SkelAnime').addr
+            elif node.actorId == mmactors.En_Kakasi and isFirstLoad:
+                self.alloc(0xB0, 'SkelAnime')
+                self.alloc(0xB0, 'SkelAnime')
+
+        return kill
+
+    def destroyFunction(self, node):
+        if self.game == "MM":
+            if node.actorId == mmactors.En_Trt2:
+                self.dealloc(node.skelAnime1)
+                self.dealloc(node.skelAnime2)
+            elif node.actorId == mmactors.En_M_Thunder:
+                if node.dust is not None:
+                    self.dealloc(node.dust)
+
     def getAvailableActions(self, carryingActor, disableInteractionWith=[], ignoreRooms={}, disableInteractionWithAddrs=[]): ### Also incomplete.
 
         if self.game == "MM":
-            return self.getAvailableActionsMM(carryingActor, disableInteractionWith=[], ignoreRooms={})
+            return self.getAvailableActionsMM(carryingActor, disableInteractionWith, ignoreRooms)
 
         availableActions = set()
 
@@ -414,19 +515,19 @@ class GameState:
                                     availableActions.add(('changeRoom', room))
 
                     if node.actorId in [actors.En_Bom, actors.En_Bom_Chu, actors.En_Insect, actors.En_Fish, actors.En_M_Thunder, actors.En_Boom, actors.Arms_Hook, actors.En_Item00, actors.En_Arrow]:
-                        availableActions.add(('dealloc', node.addr))
+                        availableActions.add(('dealloc', node.addr, node.description))
 
                     if not carryingActor and self.actorStates[actors.En_M_Thunder]['numLoaded'] < 1 and self.actorStates[actors.Arms_Hook]['numLoaded'] < 1: # less safe assumption, but go with it for now...
               
                         if node.actorId in [actors.En_Wonder_Item, actors.En_Kusa, actors.En_Ishi, actors.Obj_Bombiwa, actors.En_Firefly, actors.Obj_Tsubo, actors.En_Okuta, actors.En_Bubble, actors.En_Bili, actors.Obj_Kibako]:
-                            availableActions.add(('dealloc', node.addr))
+                            availableActions.add(('dealloc', node.addr, node.description))
                             
                         if node.actorId == actors.En_Kanban:
                             availableActions.add(('allocActor', actors.En_Kanban, tuple(node.rooms)))
 
                     if node.actorId == actors.Obj_Mure2:
                         if node.spawnedChildren:
-                          #if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
+                          if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
                             availableActions.add(('unloadChildren', node.addr))
                         else:
                             if node.actorParams & 3 == 1: # bushes
@@ -435,7 +536,7 @@ class GameState:
                                 availableActions.add(('allocMultipleActors', actors.En_Ishi, node.childCount, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
                     if node.actorId == actors.Obj_Mure3:
                         if node.spawnedChildren:
-                          #if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
+                          if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
                             availableActions.add(('unloadChildren', node.addr))
                         else:
                             if node.actorParams & 0xE000 == 0x4000:
@@ -451,25 +552,50 @@ class GameState:
             for room in self.loadedRooms:
                 availableActions.add(('unloadRoomsExcept', room))
 
-        for actorId in (mmactors.En_M_Thunder,mmactors.Arms_Hook):
+        for actorId in (mmactors.En_M_Thunder,mmactors.Arms_Hook,mmactors.En_Bom,mmactors.En_Bom_Chu):
             if actorId not in self.actorStates:
                 self.actorStates[actorId] = {'numLoaded':0}
-        
-        if len(self.loadedRooms) == 1: # assume without loss of generality that we only despawn actors when not in loading transitions
+
+        if not carryingActor and self.heldActor is None:
+
+            if self.flags['sword']:
+                availableActions.add(('allocAndInitActor', mmactors.En_M_Thunder, 'ALL', 0x0000, (0,0,0), True))
+            
+            if self.flags['bomb'] and self.actorStates[mmactors.En_Bom]['numLoaded'] + self.actorStates[mmactors.En_Bom_Chu]['numLoaded'] < 3:
+                availableActions.add(('allocActor', mmactors.En_Bom, 'ALL', 0x0000, (0,0,0), True))
               
-            for node in self.heap():
-                if not node.free and node.nodeType=='INSTANCE' and node.actorId not in disableInteractionWith:
+        for node in self.heap():
+            if not node.free and node.nodeType=='INSTANCE' and node.actorId not in disableInteractionWith:
+                
+                if node.rooms != 'ALL' and len(node.rooms) > 1 and len(self.loadedRooms) == 1: # This is a transition actor
+                    for room in node.rooms:
+                        if room not in self.loadedRooms and room not in ignoreRooms:
+                            if node.actorId == mmactors.En_Holl:
+                                #availableActions.add(('loadRoom', room))
+                                availableActions.add(('changeRoom', room))
                     
-                    if node.rooms != 'ALL' and len(node.rooms) > 1 and len(self.loadedRooms) == 1: # This is a transition actor
-                        for room in node.rooms:
-                            if room not in self.loadedRooms and room not in ignoreRooms:
-                                if node.actorId == mmactors.En_Holl:
-                                    availableActions.add(('changeRoom', room))
+                if node.actorId == mmactors.En_Bom:
+                    for room in self.loadedRooms:
+                        availableActions.add(('explode', node.addr, room, node.description))
+                        if self.heldActor == node.addr:
+                            availableActions.add(('drop', node.addr, room, node.description))
+                        else:
+                            pass#availableActions.add(('pickup', node.addr, node.description))
+        
+                if len(self.loadedRooms) == 1:
+
+                    if node.actorId in [mmactors.En_M_Thunder, mmactors.En_Mnk, mmactors.En_Clear_Tag, mmactors.En_Item00]:
+                        availableActions.add(('dealloc', node.addr, node.description))
                                     
-                    if not carryingActor and self.actorStates[mmactors.En_M_Thunder]['numLoaded'] < 1 and self.actorStates[mmactors.Arms_Hook]['numLoaded'] < 1:
+                    if not carryingActor and (self.heldActor is None or self.heldActor == node.addr):
               
-                        if node.actorId in [mmactors.En_Kusa]:
-                            availableActions.add(('dealloc', node.addr))
+                        if node.actorId in [mmactors.En_Kusa, mmactors.Obj_Tsubo]:
+                            if not (self.sceneId == 0x29 and len(node.rooms) == 1 and 0 in node.rooms):
+                                availableActions.add(('dealloc', node.addr, node.description))
+                                if self.heldActor != node.addr:
+                                    pass#availableActions.add(('pickup', node.addr, node.description))
+                                if node.actorId == mmactors.Obj_Tsubo and not (self.sceneId == 0x29 and 0 in self.loadedRooms):
+                                    pass#availableActions.add(('explode', node.addr, 'ALL', node.description))
 
         return availableActions
 
@@ -538,15 +664,13 @@ class GameState:
         return "\n".join((str(node) for node in self.heap()))
 
     def __hash__(self):
-        stateHash = 0
-        for node in self.heap():
-            stateHash = hash((stateHash, node.addr, node.description))
-        return stateHash
+        return hash(tuple(self.heap()))
 
     def __deepcopy__(self, memo):
         selfCopy = copy.copy(self)
         selfCopy.loadedObjects = copy.copy(self.loadedObjects)
         selfCopy.loadedRooms = copy.copy(self.loadedRooms)
+        selfCopy.loadedTransitionActors = copy.copy(self.loadedTransitionActors)
         selfCopy.actorStates = copy.deepcopy(self.actorStates) # why is this necessary?
         selfCopy.ram = {}
         for node in self.heap():
@@ -569,9 +693,13 @@ class HeapNode:
         self.nodeType = 'OTHER'
         self.actorId = None
         self.actorParams = None
+        self.transitionActorId = None
 
     def __str__(self):
         return "header:%08X data:%08X free:%d blocksize:%X next_addr:%X prev_addr:%X - %s"%(self.addr,self.addr+self.headerSize,self.free,self.blockSize, self.nextNodeAddr, self.prevNodeAddr, self.description)
+
+    def __hash__(self):
+        return hash((self.addr, self.headerSize, self.blockSize, self.prevNodeAddr, self.nextNodeAddr, self.free, self.description, self.rooms, self.nodeType, self.actorId, self.actorParams, self.transitionActorId))
 
 
 class TupleWrapper(tuple):
