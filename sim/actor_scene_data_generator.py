@@ -1,252 +1,1241 @@
+# coding=utf-8
+
 import struct
 import json
 import pprint
+import os.path
 
-versions = [
-    {'name':"OoT-N-1.0",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (V1.0).dec','actortable':0xB5E490,'scenetable':0xB71440,'heapStart':0x801DAA00,'console':'N64','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-N-1.1",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (V1.1).dec','actortable':0xB5E650,'scenetable':0xB71600,'heapStart':0x801DABC0,'console':'N64','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-P-1.0",'filename':'Legend of Zelda, The - Ocarina of Time (PAL) (V1.0).dec','actortable':0xB5DDA0,'scenetable':0xB70D60,'heapStart':0x801D8A40,'console':'N64','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-N-1.2",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (V1.2).dec','actortable':0xB5E490,'scenetable':0xB71450,'heapStart':0x801DB2C0,'console':'N64','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-P-1.1",'filename':'Legend of Zelda, The - Ocarina of Time (PAL) (V1.1).dec','actortable':0xB5DDE0,'scenetable':0xB70DA0,'heapStart':0x801D8A80,'console':'N64','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-J-GC-MQDisc",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (GC) [MQ Disc].dec','actortable':0xB5CB60,'scenetable':0xB6FB20,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-J-MQ",'filename':'Zelda no Densetsu - Toki no Ocarina Ura (J) (GC).dec','actortable':0xB5CB40,'scenetable':0xB6FB00,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'MQ'},
-    {'name':"OoT-U-GC",'filename':'Legend of Zelda, The - Ocarina of Time (U) (GC).dec','actortable':0xB5CB40,'scenetable':0xB6FB00,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-U-MQ",'filename':'Legend of Zelda, The - Ocarina of Time - Master Quest (U) (GC).dec','actortable':0xB5CB20,'scenetable':0xB6FAE0,'heapStart':0x801DBB60,'console':'GC','game':'OoT', 'variation':'MQ'},
-    {'name':"OoT-P-GC",'filename':'Legend of Zelda, The - Ocarina of Time (PAL) (GC).dec','actortable':0xB5C4A0,'scenetable':0xB6F460,'heapStart':0x801D93A0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-P-MQ",'filename':'Legend of Zelda, The - Ocarina of Time - Master Quest (PAL) (GC).dec','actortable':0xB5C480,'scenetable':0xB6F440,'heapStart':0x801D9360,'console':'GC','game':'OoT', 'variation':'MQ'},
-    {'name':"OoT-J-GC-CEDisc",'filename':'Zelda no Densetsu - Toki no Ocarina (J) (GC) [Collector\'s Edition Disc].dec','actortable':0xB5CB40,'scenetable':0xB6FB00,'heapStart':0x801DBBA0,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"OoT-iQue",'filename':'Zelda Chuanshuo Shiguang Zhi Di 00200f70 (zh-CN) (iQue).dec','actortable':0xB87180,'scenetable':0xB9A120,'heapStart':0x801E7F60,'console':'GC','game':'OoT', 'variation':'VANILLA'},
-    {'name':"MM-J-1.0",'filename':'Zelda no Densetsu - Mujura no Kamen (J) [!].dec','actortable':0xC617C0,'scenetable':0xC76510,'heapStart':0x803FFF70,'console':'N64','game':'MM', 'variation': None},
-    {'name':"MM-J-1.1",'filename':'Zelda no Densetsu - Mujura no Kamen (Japan) (Rev A).dec','actortable':0xC61AC0,'scenetable':0xC767E0,'heapStart':0x80400230,'console':'N64','game':'MM', 'variation': None},
-    {'name':"MM-U",'filename':'Legend of Zelda, The - Majora\'s Mask (USA).dec','actortable':0xC45510,'scenetable':0xC5A1E0,'heapStart':0x803FFDA0,'console':'N64','game':'MM', 'variation': None},
-    ]
+###################
+#export actor data#
+###################
+actorList = [
+	["Player", "Player"],
+	["unset", ""],
+	["En_Test", "Stalfos"],
+	["unset", ""],
+	["En_GirlA", "Shop Inventory Data"],
+	["unset", ""],
+	["unset", ""],
+	["En_Part", "?: En_Part"],
+	["En_Light", "Flame"],
+	["En_Door", "Wooden Door"],
+	["En_Box", "Treasure Chest"],
+	["Bg_Dy_Yoseizo", "Great Fairy"],
+	["Bg_Hidan_Firewall", "Proximity-Activated Firewall"],
+	["En_Poh", "Graveyard Poe & Composer Brothers"],
+	["En_Okuta", "Octorok"],
+	["Bg_Ydan_Sp", "Spiderweb"],
+	["En_Bom", "Bomb Field Model"],
+	["En_Wallmas", "Wallmaster"],
+	["En_Dodongo", "Dodongo"],
+	["En_Firefly", "Keese"],
+	["En_Horse", "Adult Epona"],
+	["En_Item00", "Collectible Items (Visible)"],
+	["En_Arrow", "?: En_Arrow"],
+	["unset", ""],
+	["En_Elf", "Navi & Healing Fairy"],
+	["En_Niw", "Friendly Cucco"],
+	["unset", ""],
+	["En_Tite", "Tektite"],
+	["En_Reeba", "Leever"],
+	["En_Peehat", "Peahat"],
+	["En_Butte", "Butterfly"],
+	["unset", ""],
+	["En_Insect", "Bug"],
+	["En_Fish", "Fish"],
+	["unset", ""],
+	["En_Holl", "Room Transition Plane"],
+	["En_Scene_Change", "?: En_Scene_Change"],
+	["En_Zf", "Lizalfos & Dinalfos"],
+	["En_Hata", "Flagpole"],
+	["Boss_Dodongo", "King Dodongo"],
+	["Boss_Goma", "Gohma"],
+	["En_Zl1", "Child Zelda (Cutscene 05 & 06)"],
+	["En_Viewer", "?: En_Viewer"],
+	["En_Goma", "Gohma Larva"],
+	["Bg_Pushbox", "?: Bg_Pushbox"],
+	["En_Bubble", "Shabom"],
+	["Door_Shutter", "Door Shutter"],
+	["En_Dodojr", "Baby Dodongo"],
+	["En_Bdfire", "King Dodongo's Fire"],
+	["unset", ""],
+	["En_Boom", "Boomerang Field Model"],
+	["En_Torch2", "Dark Link"],
+	["En_Bili", "Biri"],
+	["En_Tp", "Tailpasaran"],
+	["unset", ""],
+	["En_St", "Skulltula"],
+	["En_Bw", "Torch Slug"],
+	["En_A_Obj", "Directional Sign & Square Sign [Early]"],
+	["En_Eiyer", "Land Stinger"],
+	["En_River_Sound", "Sound Effects I"],
+	["En_Horse_Normal", "Generic Horse"],
+	["En_Ossan", "?: En_Ossan"],
+	["Bg_Treemouth", "Deku Tree's Jaw"],
+	["Bg_Dodoago", "Dead Dodongo's Jaw"],
+	["Bg_Hidan_Dalm", "Fire Temple Breakable Hammer Block"],
+	["Bg_Hidan_Hrock", "Fire Temple Hammer-Activated Elevator Pillar"],
+	["En_Horse_Ganon", "Ganondorf's Horse"],
+	["Bg_Hidan_Rock", "Fire Temple Fire-Powered Elevator Block"],
+	["Bg_Hidan_Rsekizou", "Fire Temple Rotating Fire Spinner"],
+	["Bg_Hidan_Sekizou", "Fire Temple Flame-Spouting Statue"],
+	["Bg_Hidan_Sima", "Fire Temple Clover Platform"],
+	["Bg_Hidan_Syoku", "Fire Temple Fire-Powered Mini-Boss Room Face Elevator"],
+	["En_Xc", "Sheik"],
+	["Bg_Hidan_Curtain", "Circle of Flames"],
+	["Bg_Spot00_Hanebasi", "Drawbridge"],
+	["En_Mb", "Moblin"],
+	["En_Bombf", "Bomb Flower"],
+	["En_Zl2", "Adult Zelda (Cutscenes)"],
+	["Bg_Hidan_Fslift", "Hookshot Elevator"],
+	["En_OE2", "Kokiri Girl [Early]"],
+	["Bg_Ydan_Hasi", "?: Bg_Ydan_Hasi"],
+	["Bg_Ydan_Maruta", "Deku Tree Spiked Log & Dropdown Ladder"],
+	["Boss_Ganondrof", "Phantom Ganon"],
+	["unset", ""],
+	["En_Am", "Armos"],
+	["En_Dekubaba", "Deku Baba"],
+	["En_M_Fire1", "Deku Nut Effect"],
+	["En_M_Thunder", "Spin Attack Effects"],
+	["Bg_Ddan_Jd", "Dodongo's Cavern Elevator Platform"],
+	["Bg_Breakwall", "Bombable Wall"],
+	["En_Jj", "Jabu-Jabu"],
+	["En_Horse_Zelda", "Zelda's Horse"],
+	["Bg_Ddan_Kd", "Dodongo's Cavern Bombable Stairs"],
+	["Door_Warp1", "Blue Warp & Rupee-Shaped Prism"],
+	["Obj_Syokudai", "Torch Stand (Generic)"],
+	["Item_B_Heart", "Heart Container"],
+	["En_Dekunuts", "Mad Scrub"],
+	["Bg_Menkuri_Kaiten", "Rotating Ring"],
+	["Bg_Menkuri_Eye", "Statue Eye Targets"],
+	["En_Vali", "Bari"],
+	["Bg_Mizu_Movebg", "?: Bg_Mizu_Movebg"],
+	["Bg_Mizu_Water", "Water Temple Water"],
+	["Arms_Hook", "Hookshot Field Model"],
+	["En_fHG", "Phantom Ganon's Horse"],
+	["Bg_Mori_Hineri", "Forest Temple Twisting Corridor"],
+	["En_Bb", "Bubble"],
+	["Bg_Toki_Hikari", "Temple of Time Window Light Rays"],
+	["En_Yukabyun", "Flying Floor Tile"],
+	["Bg_Toki_Swd", "Master Sword"],
+	["En_Fhg_Fire", "Phantom Ganon's Lightning"],
+	["Bg_Mjin", "Warp Pad & Ocarina Pedestal"],
+	["Bg_Hidan_Kousi", "Metal Bars"],
+	["Door_Toki", "Door of Time Collision Model"],
+	["Bg_Hidan_Hamstep", "Hammer-Activated Steps"],
+	["En_Bird", "Brown Bird"],
+	["unset", ""],
+	["unset", ""],
+	["unset", ""],
+	["unset", ""],
+	["En_Wood02", "Trees & Bushes"],
+	["unset", ""],
+	["unset", ""],
+	["unset", ""],
+	["unset", ""],
+	["En_Lightbox", "Grey Rectangular Block"],
+	["En_Pu_box", "Grey Rectangular Stone Block"],
+	["unset", ""],
+	["unset", ""],
+	["En_Trap", "Blade Trap"],
+	["En_Arow_Trap", "Arrow-Deflecting Trap"],
+	["En_Vase", "Orange Pot"],
+	["unset", ""],
+	["En_Ta", "Talon"],
+	["En_Tk", "Dampé"],
+	["Bg_Mori_Bigst", "Forest Temple Bow Room Platform"],
+	["Bg_Mori_Elevator", "Forest Temple Sun Elevator"],
+	["Bg_Mori_Kaitenkabe", "Forest Temple Rotating Pre-Boss Room"],
+	["Bg_Mori_Rakkatenjo", "Forest Temple Collapsing Checkerboard Ceiling"],
+	["En_Vm", "Beamos"],
+	["Demo_Effect", "?: Demo_Effect"],
+	["Demo_Kankyo", "?: Demo_Kankyo"],
+	["Bg_Hidan_Fwbig", "Fire Temple Big Fire Wall"],
+	["En_Floormas", "Floormaster"],
+	["En_Heishi1", "Soldier (Castle Hedge Maze)"],
+	["En_Rd", "Redead & Gibdo"],
+	["En_Po_Sisters", "?: En_Po_Sisters"],
+	["Bg_Heavy_Block", "Golden Gauntlets Rock"],
+	["Bg_Po_Event", "?: Bg_Po_Event"],
+	["Obj_Mure", "Group of Bugs / Fish / Butterflies"],
+	["En_Sw", "Skullwalltula"],
+	["Boss_Fd", "Volvagia (Flying)"],
+	["Object_Kankyo", "?: Object_Kankyo"],
+	["En_Du", "Darunia"],
+	["En_Fd", "Flare Dancer"],
+	["En_Horse_Link_Child", "Child Epona"],
+	["Door_Ana", "Grotto Hole"],
+	["Bg_Spot02_Objects", "Graveyard Objects"],
+	["Bg_Haka", "Gravestone"],
+	["Magic_Wind", "Farore's Wind Effect"],
+	["Magic_Fire", "Din's Fire Effect"],
+	["unset", ""],
+	["En_Ru1", "Child Ruto"],
+	["Boss_Fd2", "Volvagia (Whack-a-Mole)"],
+	["En_Fd_Fire", "Flare Dancer's Fireball"],
+	["En_Dh", "Dead Hand"],
+	["En_Dha", "Dead Hand's Hands"],
+	["En_Rl", "Rauru"],
+	["En_Encount1", "Enemy Spawner"],
+	["Demo_Du", "Darunia"],
+	["Demo_Im", "Impa"],
+	["Demo_Tre_Lgt", "Treasure Chest Glow"],
+	["En_Fw", "Flare Dancer Core"],
+	["Bg_Vb_Sima", "Volvagia's Sinking Platform"],
+	["En_Vb_Ball", "Volvagia's Rock Attack"],
+	["Bg_Haka_Megane", "?: Bg_Haka_Megane"],
+	["Bg_Haka_MeganeBG", "Invisible Wall"],
+	["Bg_Haka_Ship", "Charon's Boat"],
+	["Bg_Haka_Sgami", "Spinning Scythes"],
+	["unset", ""],
+	["En_Heishi2", "Soldier (Castle Gate / Zelda's Courtyard / Kakariko Village)"],
+	["En_Encount2", "Falling Boulder Spawner"],
+	["En_Fire_Rock", "Flaming Debris"],
+	["En_Brob", "Stunnable Jelly Platform"],
+	["Mir_Ray", "Reflectable Ray of Light"],
+	["Bg_Spot09_Obj", "Gerudo Valley Objects"],
+	["Bg_Spot18_Obj", "Goron City Objects"],
+	["Boss_Va", "Barinade"],
+	["Bg_Haka_Tubo", "Shadow Temple Flaming Skull Vase"],
+	["Bg_Haka_Trap", "Shadow Temple Guillotine"],
+	["Bg_Haka_Huta", "Shadow Temple Coffin Lid"],
+	["Bg_Haka_Zou", "?: Bg_Haka_Zou"],
+	["Bg_Spot17_Funen", "Death Mountain Crater Smoke Plume"],
+	["En_Syateki_Itm", "Shooting Gallery Items"],
+	["En_Syateki_Man", "Shooting Gallery Proprietor"],
+	["En_Tana", "Shop Shelves"],
+	["En_Nb", "Nabooru"],
+	["Boss_Mo", "Morpha"],
+	["En_Sb", "Shellblade"],
+	["En_Bigokuta", "Big Octorok"],
+	["En_Karebaba", "Wilted Deku Baba"],
+	["Bg_Bdan_Objects", "Inside Jabu-Jabu's Belly Objects"],
+	["Demo_Sa", "Saria (Cutscenes)"],
+	["Demo_Go", "Generic Goron (Cutscenes)"],
+	["En_In", "Ingo"],
+	["En_Tr", "Kotake & Koume"],
+	["Bg_Spot16_Bombstone", "Dodongo's Cavern Boulder Blockade"],
+	["unset", ""],
+	["Bg_Hidan_Kowarerukabe", "Bombable Wall & Cracked Floor (Fire Temple)"],
+	["Bg_Bombwall", "Bombable Wall (Death Mountain Trail)"],
+	["Bg_Spot08_Iceblock", "Drifting Ice Platform"],
+	["En_Ru2", "Adult Ruto"],
+	["Obj_Dekujr", "Deku Tree Sprout"],
+	["Bg_Mizu_Uzu", "Water Current"],
+	["Bg_Spot06_Objects", "Lake Hylia Objects"],
+	["Bg_Ice_Objects", "Ice Cavern Objects"],
+	["Bg_Haka_Water", "Bottom of the Well Moat Water"],
+	["unset", ""],
+	["En_Ma2", "Adult Malon (Stable & Lon Lon Ranch - Ingo Ousted)"],
+	["En_Bom_Chu", "Bombchu Field Model"],
+	["En_Horse_Game_Check", "?: En_Horse_Game_Check"],
+	["Boss_Tw", "Twinrova"],
+	["En_Rr", "Like Like"],
+	["En_Ba", "Parasitic Tentacle"],
+	["En_Bx", "Tentacle Obstruction"],
+	["En_Anubice", "Anubis"],
+	["En_Anubice_Fire", "Anubis-Killing Fire Trap"],
+	["Bg_Mori_Hashigo", "Forest Temple Dropdown Ladder"],
+	["Bg_Mori_Hashira4", "Forest Temple Rotating Lava Room Platforms"],
+	["Bg_Mori_Idomizu", "Forest Temple Well Path Water"],
+	["Bg_Spot16_Doughnut", "Death Mountain Cloud Ring"],
+	["Bg_Bdan_Switch", "Jabu-Jabu's Belly Switch"],
+	["En_Ma1", "Child Malon"],
+	["Boss_Ganon", "Ganondorf"],
+	["Boss_Sst", "Bongo Bongo"],
+	["unset", ""],
+	["unset", ""],
+	["En_Ny", "Spike Trap"],
+	["En_Fr", "Frog"],
+	["Item_Shield", "Collectible Deku Shield"],
+	["Bg_Ice_Shelter", "Meltable Ice Covering"],
+	["En_Ice_Hono", "Blue Fire"],
+	["Item_Ocarina", "Collectible Ocarina of Time"],
+	["unset", ""],
+	["unset", ""],
+	["Magic_Dark", "Nayru's Love Effect"],
+	["Demo_6K", "Sage Light Orbs"],
+	["En_Anubice_Tag", "Anubis Spawner"],
+	["Bg_Haka_Gate", "?: Bg_Haka_Gate"],
+	["Bg_Spot15_Saku", "Hyrule Castle Gate"],
+	["Bg_Jya_Goroiwa", "Rolling Boulder (Spirit Temple)"],
+	["Bg_Jya_Zurerukabe", "Spirit Temple Shifting Wall"],
+	["unset", ""],
+	["Bg_Jya_Cobra", "Snake Statue"],
+	["Bg_Jya_Kanaami", "Mesh Bridge"],
+	["Fishing", "Fishing Pond & Proprietor"],
+	["Obj_Oshihiki", "Pushblock"],
+	["Bg_Gate_Shutter", "Gate to Death Mountain Trail"],
+	["Eff_Dust", "Dust Particles"],
+	["Bg_Spot01_Fusya", "Kakariko Village Windmill Blades"],
+	["Bg_Spot01_Idohashira", "Kakariko Village Well Crossbeam"],
+	["Bg_Spot01_Idomizu", "Kakariko Village Well Water"],
+	["Bg_Po_Syokudai", "Torch Stand (Poe Sisters)"],
+	["Bg_Ganon_Otyuka", "Ganondorf's Lair Floor Tile"],
+	["Bg_Spot15_Rrbox", "Lon Lon Milk Crate"],
+	["Bg_Umajump", "Horse Jumping Fence"],
+	["unset", ""],
+	["Arrow_Fire", "Collectible Fire Arrows"],
+	["Arrow_Ice", "Collectible Ice Arrows"],
+	["Arrow_Light", "Collectible Light Arrows"],
+	["unset", ""],
+	["unset", ""],
+	["Item_Etcetera", "Collectible Quest Items"],
+	["Obj_Kibako", "Small Wooden Crate"],
+	["Obj_Tsubo", "Pot"],
+	["En_Wonder_Item", "Collectible Field Items (Invisible)"],
+	["En_Ik", "Iron Knuckle (Field Enemy)"],
+	["Demo_Ik", "Iron Knuckle (Cutscenes)"],
+	["En_Skj", "Skullkid"],
+	["En_Skjneedle", "Skullkid's Needle"],
+	["En_G_Switch", "Silver Rupee"],
+	["Demo_Ext", "Kotake & Koume's Portal"],
+	["Demo_Shd", "Bongo Bongo's Shadow"],
+	["En_Dns", "Business Scrub (Surrendered)"],
+	["Elf_Msg", "Navi Message (Automatically Triggered)"],
+	["En_Honotrap", "Flame-Shooting Eye Switch"],
+	["En_Tubo_Trap", "Flying Pot"],
+	["Obj_Ice_Poly", "?: Obj_Ice_Poly"],
+	["Bg_Spot03_Taki", "Zora's River Waterfall"],
+	["Bg_Spot07_Taki", "Zora's Domain Waterfall"],
+	["En_Fz", "Freezard"],
+	["En_Po_Relay", "Dampé's Ghost"],
+	["Bg_Relay_Objects", "Dampé's Relay Objects"],
+	["En_Diving_Game", "Diving Game Zora"],
+	["En_Kusa", "Grass Clump & Regenerating Grass"],
+	["Obj_Bean", "Bean Planting Spot"],
+	["Obj_Bombiwa", "Bombable Boulder"],
+	["unset", ""],
+	["unset", ""],
+	["Obj_Switch", "Bronze / Diamond / Eye Switch"],
+	["Obj_Elevator", "Stone Elevator"],
+	["Obj_Lift", "Deku Tree Elevator"],
+	["Obj_Hsblock", "Hookshot Target Pillar"],
+	["En_Okarina_Tag", "Ocarina Spot"],
+	["En_Yabusame_Mark", "?: En_Yabusame_Mark"],
+	["En_Goroiwa", "Rolling Boulder (Generic)"],
+	["En_Ex_Ruppy", "Deku Target Game Rupee"],
+	["En_Toryo", "Carpenter Boss"],
+	["En_Daiku", "Carpenter (Thieves' Hideout & Carpenters' Tent)"],
+	["unset", ""],
+	["En_Nwc", "Cucco Chick"],
+	["En_Blkobj", "Dark Link's Illusion Room"],
+	["Item_Inbox", "?: Item_Inbox"],
+	["En_Ge1", "Gerudo in White"],
+	["Obj_Blockstop", "?: Obj_Blockstop"],
+	["En_Sda", "Dynamic Shadow"],
+	["En_Clear_Tag", "Arwing"],
+	["En_Niw_Lady", "Cucco Lady"],
+	["En_Gm", "Medigoron"],
+	["En_Ms", "Magic Bean Seller"],
+	["En_Hs", "Carpenter Boss's Son (Lost Woods)"],
+	["Bg_Ingate", "Gate to Ingo's Ranch"],
+	["En_Kanban", "Square Sign"],
+	["En_Heishi3", "Soldier (Hyrule Castle)"],
+	["En_Syateki_Niw", "?: En_Syateki_Niw"],
+	["En_Attack_Niw", "Cucco (Attacking)"],
+	["Bg_Spot01_Idosoko", "Well Stopper"],
+	["En_Sa", "Saria (Gameplay)"],
+	["En_Wonder_Talk", "Checkable Green Navi Spot"],
+	["Bg_Gjyo_Bridge", "Rainbow Bridge"],
+	["En_Ds", "Potion Shop Granny"],
+	["En_Mk", "Lake Scientist"],
+	["En_Bom_Bowl_Man", "Bombchu Bowling Alley Employee"],
+	["En_Bom_Bowl_Pit", "?: En_Bom_Bowl_Pit"],
+	["En_Owl", "Kaepora Gaebora"],
+	["En_Ishi", "Silver Gauntlets Boulder"],
+	["Obj_Hana", "Graveyard Flower / Rock & Grass Pulled by Kokiri"],
+	["Obj_Lightswitch", "Sun Switch"],
+	["Obj_Mure2", "Groups of Rocks & Grass Clumps"],
+	["En_Go", "Generic Goron [Early]"],
+	["En_Fu", "Windmill Man"],
+	["unset", ""],
+	["En_Changer", "Treasure Chest (Treasure Chest Shop)"],
+	["Bg_Jya_Megami", "Goddess Statue"],
+	["Bg_Jya_Lift", "Ceiling Elevator"],
+	["Bg_Jya_Bigmirror", "Ceiling Mirror"],
+	["Bg_Jya_Bombchuiwa", "Bombable Bombchu Boulder"],
+	["Bg_Jya_Amishutter", "Hookshot Grate"],
+	["Bg_Jya_Bombiwa", "?: Bg_Jya_Bombiwa"],
+	["Bg_Spot18_Basket", "Spinning Goron Vase"],
+	["unset", ""],
+	["En_Ganon_Organ", "Ganondorf's Organ"],
+	["En_Siofuki", "Small Water Spout"],
+	["En_Stream", "Big Water Spout"],
+	["unset", ""],
+	["En_Mm", "Running Man (Hyrule Field & Ending)"],
+	["En_Ko", "Kokiri Spawner"],
+	["En_Kz", "King Zora"],
+	["En_Weather_Tag", "Weather-Changing Tag"],
+	["Bg_Sst_Floor", "Bongo Bongo's Drum Head"],
+	["En_Ani", "Man on Kakariko Rooftop"],
+	["En_Ex_Item", "Bombchu Bowling Prizes"],
+	["Bg_Jya_Ironobj", "Iron Knuckle Throne & Columns"],
+	["En_Js", "Carpet Merchant"],
+	["En_Jsjutan", "Carpet Merchant's Magic Carpet"],
+	["En_Cs", "Graveyard Boy"],
+	["En_Md", "Mido"],
+	["En_Hy", "Hylian Spawner"],
+	["En_Ganon_Mant", "Ganondorf's Cape"],
+	["En_Okarina_Effect", "Song of Storms Effect"],
+	["En_Mag", "Title Screen Overlay"],
+	["Door_Gerudo", "Thieves' Hideout Cell Door"],
+	["Elf_Msg2", "Navi Message (Targetable)"],
+	["Demo_Gt", "Ganon's Tower Exterior (Collapsing) Objects"],
+	["En_Po_Field", "Big Poe"],
+	["Efc_Erupc", "Death Mountain Eruption Effects"],
+	["Bg_Zg", "Gate Barring Escape From Ganon's Tower"],
+	["En_Heishi4", "Soldier (Hyrule Castle Town & Kakariko Village)"],
+	["En_Zl3", "Adult Zelda (Normal Gameplay)"],
+	["Boss_Ganon2", "Ganon"],
+	["En_Kakasi", "Pierre (Lake Hylia)"],
+	["En_Takara_Man", "Treasure Chest Shop Proprietor"],
+	["Obj_Makeoshihiki", "Make Pushblock"],
+	["Oceff_Spot", "Sun's Song Effect"],
+	["End_Title", "Ending Overlays"],
+	["unset", ""],
+	["En_Torch", "Grotto Treasure Chest"],
+	["Demo_Ec", "Ending Cutscene NPCs"],
+	["Shot_Sun", "Fire Arrow Trigger & Big Fairy"],
+	["En_Dy_Extra", "Great Fairy's Healing Beam"],
+	["En_Wonder_Talk2", "Checkable Spot"],
+	["En_Ge2", "Patrolling Gerudo in Purple"],
+	["Obj_Roomtimer", "Room Timer"],
+	["En_Ssh", "Skulltula House Resident (Cursed)"],
+	["En_Sth", "Skulltula House Resident (Curse Lifted)"],
+	["Oceff_Wipe", "Lullaby / Song of Time Effect"],
+	["Oceff_Storm", "Song of Storms Effect"],
+	["En_Weiyer", "Stinger (Water)"],
+	["Bg_Spot05_Soko", "Sacred Forest Meadow Pond Bottom"],
+	["Bg_Jya_1flift", "Spirit Temple Entrance Room Elevator"],
+	["Bg_Jya_Haheniron", "Iron Knuckle Debris"],
+	["Bg_Spot12_Gate", "Gate to the Haunted Wasteland"],
+	["Bg_Spot12_Saku", "Gate to the Gerudo Training Ground"],
+	["En_Hintnuts", "Deku Scrub (Inside the Deku Tree)"],
+	["En_Nutsball", "Deku Scrub Projectile"],
+	["Bg_Spot00_Break", "Broken Drawbridge"],
+	["En_Shopnuts", "Business Scrub (Attacking)"],
+	["En_It", "Collectable Grave-Digging Game Items"],
+	["En_GeldB", "Gerudo Fighter"],
+	["Oceff_Wipe2", "Epona's Song Effect"],
+	["Oceff_Wipe3", "Saria's Song Effect"],
+	["En_Niw_Girl", "Cucco-Chasing Girl"],
+	["En_Dog", "Dog"],
+	["En_Si", "Gold Skulltula Token"],
+	["Bg_Spot01_Objects2", "Kakariko Village Objects"],
+	["Obj_Comb", "Beehive"],
+	["Bg_Spot11_Bakudankabe", "Bombable Wall (Desert Colossus)"],
+	["Obj_Kibako2", "Large Wooden Crate"],
+	["En_Dnt_Demo", "Forest Stage Actor Spawner"],
+	["En_Dnt_Jiji", "Forest Stage Judge"],
+	["En_Dnt_Nomal", "Deku Scrub (Deku Target Game)"],
+	["En_Guest", "Happy Mask Shop Customer"],
+	["Bg_Bom_Guard", "Bombchu Bowling Alley Walls"],
+	["En_Hs2", "Carpenter Boss's Son (Kakariko Village)"],
+	["Demo_Kekkai", "Ganon's Castle Barrier"],
+	["Bg_Spot08_Bakudankabe", "Zora's Fountain Bombable Wall"],
+	["Bg_Spot17_Bakudankabe", "Death Mountain Crater Bombable Wall"],
+	["unset", ""],
+	["Obj_Mure3", "Group of Rupees"],
+	["En_Tg", "Honey & Darling"],
+	["En_Mu", "Haggling Shoppers"],
+	["En_Go2", "Generic Goron & Biggoron"],
+	["En_Wf", "Wolfos"],
+	["En_Skb", "Stalchild"],
+	["Demo_Gj", "Ganon's Lair Rubble"],
+	["Demo_Geff", "Ganon's Lair Rubble Fragment"],
+	["Bg_Gnd_Firemeiro", "Fire Trial Sinking Zig-Zag Platform"],
+	["Bg_Gnd_Darkmeiro", "Shadow Trial Invisible Path"],
+	["Bg_Gnd_Soulmeiro", "?: Bg_Gnd_Soulmeiro"],
+	["Bg_Gnd_Nisekabe", "Ganon's Castle Fake Wall"],
+	["Bg_Gnd_Iceblock", "Water Trial Ice Pushblock"],
+	["En_Gb", "Poe Collector"],
+	["En_Gs", "Gossip Stone"],
+	["Bg_Mizu_Bwall", "Water Temple Bombable Wall"],
+	["Bg_Mizu_Shutter", "Water Temple Gate"],
+	["En_Daiku_Kakariko", "Kakariko Village - Carpenter"],
+	["Bg_Bowl_Wall", "Bombchu Bowling Alley Walls"],
+	["En_Wall_Tubo", "?: En_Wall_Tubo"],
+	["En_Po_Desert", "Poe Guide"],
+	["En_Crow", "Guay"],
+	["Door_Killer", "Door Mimic"],
+	["Bg_Spot11_Oasis", "Oasis Water"],
+	["Bg_Spot18_Futa", "Spinning Goron Vase Lid"],
+	["Bg_Spot18_Shutter", "Door to Darunia's Room"],
+	["En_Ma3", "Adult Malon (Day)"],
+	["En_Cow", "Cow"],
+	["Bg_Ice_Turara", "Icicle"],
+	["Bg_Ice_Shutter", "Ice Cavern Bars"],
+	["En_Kakasi2", "Pierre (Wandering)"],
+	["En_Kakasi3", "Bonooru"],
+	["Oceff_Wipe4", "Scarecrow's Song Effect"],
+	["En_Eg", "?: En_Eg"],
+	["Bg_Menkuri_Nisekabe", "Gerudo Training Ground Fake Wall"],
+	["En_Zo", "Zora"],
+	["Obj_Makekinsuta", "Gold Skulltula Spawner"],
+	["En_Ge3", "Nabooru's Second-in-Command"],
+	["Obj_Timeblock", "Time Block"],
+	["Obj_Hamishi", "Breakable Bronze Boulder"],
+	["En_Zl4", "Child Zelda (Gameplay & Cutscene 04)"],
+	["En_Mm2", "Running Man (Carpenters' Tent & Race)"],
+	["Bg_Jya_Block", "Silver Gauntlets Pushblock [?]"],
+	["Obj_Warp2block", "Time Block"],
+	["Bg_Ydan_*", "Deku Tree vertical web wall on top floor"],
+	["Boss_Ganon*", "?: Boss_Ganon*"],
+	["En_Hintstone", "Sheikah Stone"],
+	["Bg_Mizu_*", "?: Bg_Mizu_*"]
+]
 
-actor_names = {
-    "OoT": ["Player","_filler_En_Skeleton_filler_","En_Test","_filler_En_Iron_filler_","En_GirlA","_filler_En_Slim_filler_","_filler_En_Bskel_filler_","En_Part","En_Light","En_Door","En_Box","Bg_Dy_Yoseizo","Bg_Hidan_Firewall","En_Poh","En_Okuta","Bg_Ydan_Sp","En_Bom","En_Wallmas","En_Dodongo","En_Firefly","En_Horse","En_Item00","En_Arrow","_filler_Dummy_player_filler_","En_Elf","En_Niw","_filler_En_Bee_filler_","En_Tite","En_Reeba","En_Peehat","En_Butte","_filler_En_F_Obj_filler_","En_Insect","En_Fish","_filler_En_D_Obj_filler_","En_Holl","En_Scene_Change","En_Zf","En_Hata","Boss_Dodongo","Boss_Goma","En_Zl1","En_Viewer","En_Goma","Bg_Pushbox","En_Bubble","Door_Shutter","En_Dodojr","En_Bdfire","_filler_Magic_filler_","En_Boom","En_Torch2","En_Bili","En_Tp","_filler_En_OA1_filler_","En_St","En_Bw","En_A_Obj","En_Eiyer","En_River_Sound","En_Horse_Normal","En_Ossan","Bg_Treemouth","Bg_Dodoago","Bg_Hidan_Dalm","Bg_Hidan_Hrock","En_Horse_Ganon","Bg_Hidan_Rock","Bg_Hidan_Rsekizou","Bg_Hidan_Sekizou","Bg_Hidan_Sima","Bg_Hidan_Syoku","En_Xc","Bg_Hidan_Curtain","Bg_Spot00_Hanebasi","En_Mb","En_Bombf","En_Zl2","Bg_Hidan_Fslift","En_OE2","Bg_Ydan_Hasi","Bg_Ydan_Maruta","Boss_Ganondrof","_filler_En_Npc_filler_","En_Am","En_Dekubaba","En_M_Fire1","En_M_Thunder","Bg_Ddan_Jd","Bg_Breakwall","En_Jj","En_Horse_Zelda","Bg_Ddan_Kd","Door_Warp1","Obj_Syokudai","Item_B_Heart","En_Dekunuts","Bg_Menkuri_Kaiten","Bg_Menkuri_Eye","En_Vali","Bg_Mizu_Movebg","Bg_Mizu_Water","Arms_Hook","En_fHG","Bg_Mori_Hineri","En_Bb","Bg_Toki_Hikari","En_Yukabyun","Bg_Toki_Swd","En_Fhg_Fire","Bg_Mjin","Bg_Hidan_Kousi","Door_Toki","Bg_Hidan_Hamstep","En_Bird","_filler_En_Stree_filler_","_filler_En_Kui_filler_","_filler_En_Maruta_filler_","_filler_En_Saku_filler_","En_Wood02","_filler_En_Twood01_filler_","_filler_En_Kabu02_filler_","_filler_En_Board_filler_","_filler_En_Floater_filler_","En_Lightbox","En_Pu_box","_filler_En_Spia_filler_","_filler_En_Stoneb_filler_","En_Trap","En_Arow_Trap","En_Vase","_filler_Bg_Hidan_Pompfly_filler_","En_Ta","En_Tk","Bg_Mori_Bigst","Bg_Mori_Elevator","Bg_Mori_Kaitenkabe","Bg_Mori_Rakkatenjo","En_Vm","Demo_Effect","Demo_Kankyo","Bg_Hidan_Fwbig","En_Floormas","En_Heishi1","En_Rd","En_Po_Sisters","Bg_Heavy_Block","Bg_Po_Event","Obj_Mure","En_Sw","Boss_Fd","Object_Kankyo","En_Du","En_Fd","En_Horse_Link_Child","Door_Ana","Bg_Spot02_Objects","Bg_Haka","Magic_Wind","Magic_Fire","_filler_Magic_Ice_filler_","En_Ru1","Boss_Fd2","En_Fd_Fire","En_Dh","En_Dha","En_Rl","En_Encount1","Demo_Du","Demo_Im","Demo_Tre_Lgt","En_Fw","Bg_Vb_Sima","En_Vb_Ball","Bg_Haka_Megane","Bg_Haka_MeganeBG","Bg_Haka_Ship","Bg_Haka_Sgami","_filler_Bg_Haka_Kumo_filler_","En_Heishi2","En_Encount2","En_Fire_Rock","En_Brob","Mir_Ray","Bg_Spot09_Obj","Bg_Spot18_Obj","Boss_Va","Bg_Haka_Tubo","Bg_Haka_Trap","Bg_Haka_Huta","Bg_Haka_Zou","Bg_Spot17_Funen","En_Syateki_Itm","En_Syateki_Man","En_Tana","En_Nb","Boss_Mo","En_Sb","En_Bigokuta","En_Karebaba","Bg_Bdan_Objects","Demo_Sa","Demo_Go","En_In","En_Tr","Bg_Spot16_Bombstone","_filler_En_Npc2_filler_","Bg_Hidan_Kowarerukabe","Bg_Bombwall","Bg_Spot08_Iceblock","En_Ru2","Obj_Dekujr","Bg_Mizu_Uzu","Bg_Spot06_Objects","Bg_Ice_Objects","Bg_Haka_Water","_filler_En_Npc3_filler_","En_Ma2","En_Bom_Chu","En_Horse_Game_Check","Boss_Tw","En_Rr","En_Ba","En_Bx","En_Anubice","En_Anubice_Fire","Bg_Mori_Hashigo","Bg_Mori_Hashira4","Bg_Mori_Idomizu","Bg_Spot16_Doughnut","Bg_Bdan_Switch","En_Ma1","Boss_Ganon","Boss_Sst","_filler_Boss_Goma2_filler_","_filler_En_Stk_filler_","En_Ny","En_Fr","Item_Shield","Bg_Ice_Shelter","En_Ice_Hono","Item_Ocarina","_filler_Magic_Light_filler_","_filler_Magic_Soul_filler_","Magic_Dark","Demo_6K","En_Anubice_Tag","Bg_Haka_Gate","Bg_Spot15_Saku","Bg_Jya_Goroiwa","Bg_Jya_Zurerukabe","_filler_Bg_Jya_Sutarukage_filler_","Bg_Jya_Cobra","Bg_Jya_Kanaami","Fishing","Obj_Oshihiki","Bg_Gate_Shutter","Eff_Dust","Bg_Spot01_Fusya","Bg_Spot01_Idohashira","Bg_Spot01_Idomizu","Bg_Po_Syokudai","Bg_Ganon_Otyuka","Bg_Spot15_Rrbox","Bg_Umajump","_filler_Arrow_Dark_filler_","Arrow_Fire","Arrow_Ice","Arrow_Light","_filler_Arrow_Soul_filler_","_filler_Arrow_Wind_filler_","Item_Etcetera","Obj_Kibako","Obj_Tsubo","En_Wonder_Item","En_Ik","Demo_Ik","En_Skj","En_Skjneedle","En_G_Switch","Demo_Ext","Demo_Shd","En_Dns","Elf_Msg","En_Honotrap","En_Tubo_Trap","Obj_Ice_Poly","Bg_Spot03_Taki","Bg_Spot07_Taki","En_Fz","En_Po_Relay","Bg_Relay_Objects","En_Diving_Game","En_Kusa","Obj_Bean","Obj_Bombiwa","_filler_Obj_Breakbox_filler_","_filler_Obj_Hahen_filler_","Obj_Switch","Obj_Elevator","Obj_Lift","Obj_Hsblock","En_Okarina_Tag","En_Yabusame_Mark","En_Goroiwa","En_Ex_Ruppy","En_Toryo","En_Daiku","_filler_En_Stopge_filler_","En_Nwc","En_Blkobj","Item_Inbox","En_Ge1","Obj_Blockstop","En_Sda","En_Clear_Tag","En_Niw_Lady","En_Gm","En_Ms","En_Hs","Bg_Ingate","En_Kanban","En_Heishi3","En_Syateki_Niw","En_Attack_Niw","Bg_Spot01_Idosoko","En_Sa","En_Wonder_Talk","Bg_Gjyo_Bridge","En_Ds","En_Mk","En_Bom_Bowl_Man","En_Bom_Bowl_Pit","En_Owl","En_Ishi","Obj_Hana","Obj_Lightswitch","Obj_Mure2","En_Go","En_Fu","_filler_En_Nc_filler_","En_Changer","Bg_Jya_Megami","Bg_Jya_Lift","Bg_Jya_Bigmirror","Bg_Jya_Bombchuiwa","Bg_Jya_Amishutter","Bg_Jya_Bombiwa","Bg_Spot18_Basket","_filler_En_Warp_Box_filler_","En_Ganon_Organ","En_Siofuki","En_Stream","_filler_En_Zl22_filler_","En_Mm","En_Ko","En_Kz","En_Weather_Tag","Bg_Sst_Floor","En_Ani","En_Ex_Item","Bg_Jya_Ironobj","En_Js","En_Jsjutan","En_Cs","En_Md","En_Hy","En_Ganon_Mant","En_Okarina_Effect","En_Mag","Door_Gerudo","Elf_Msg2","Demo_Gt","En_Po_Field","Efc_Erupc","Bg_Zg","En_Heishi4","En_Zl3","Boss_Ganon2","En_Kakasi","En_Takara_Man","Obj_Makeoshihiki","Oceff_Spot","End_Title","_filler_En_Mother_filler_","En_Torch","Demo_Ec","Shot_Sun","En_Dy_Extra","En_Wonder_Talk2","En_Ge2","Obj_Roomtimer","En_Ssh","En_Sth","Oceff_Wipe","Oceff_Storm","En_Weiyer","Bg_Spot05_Soko","Bg_Jya_1flift","Bg_Jya_Haheniron","Bg_Spot12_Gate","Bg_Spot12_Saku","En_Hintnuts","En_Nutsball","Bg_Spot00_Break","En_Shopnuts","En_It","En_GeldB","Oceff_Wipe2","Oceff_Wipe3","En_Niw_Girl","En_Dog","En_Si","Bg_Spot01_Objects2","Obj_Comb","Bg_Spot11_Bakudankabe","Obj_Kibako2","En_Dnt_Demo","En_Dnt_Jiji","En_Dnt_Nomal","En_Guest","Bg_Bom_Guard","En_Hs2","Demo_Kekkai","Bg_Spot08_Bakudankabe","Bg_Spot17_Bakudankabe","_filler_Bg_Mizu_Switch_filler_","Obj_Mure3","En_Tg","En_Mu","En_Go2","En_Wf","En_Skb","Demo_Gj","Demo_Geff","Bg_Gnd_Firemeiro","Bg_Gnd_Darkmeiro","Bg_Gnd_Soulmeiro","Bg_Gnd_Nisekabe","Bg_Gnd_Iceblock","En_Gb","En_Gs","Bg_Mizu_Bwall","Bg_Mizu_Shutter","En_Daiku_Kakariko","Bg_Bowl_Wall","En_Wall_Tubo","En_Po_Desert","En_Crow","Door_Killer","Bg_Spot11_Oasis","Bg_Spot18_Futa","Bg_Spot18_Shutter","En_Ma3","En_Cow","Bg_Ice_Turara","Bg_Ice_Shutter","En_Kakasi2","En_Kakasi3","Oceff_Wipe4","En_Eg","Bg_Menkuri_Nisekabe","En_Zo","Obj_Makekinsuta","En_Ge3","Obj_Timeblock","Obj_Hamishi","En_Zl4","En_Mm2","Bg_Jya_Block","Obj_Warp2block"],
-    "MM": ["Player","En_Test","En_GirlA","En_Part","En_Light","En_Door","En_Box","En_Pametfrog","En_Okuta","En_Bom","En_Wallmas","En_Dodongo","En_Firefly","En_Horse","En_Item00","En_Arrow","En_Elf","En_Niw","En_Tite","_filler_En_Reeba_filler_","En_Peehat","En_Butte","En_Insect","En_Fish","En_Holl","En_Dinofos","En_Hata","En_Zl1","En_Viewer","En_Bubble","Door_Shutter","_filler_En_Dodojr_filler_","En_Boom","En_Torch2","En_Minifrog","_filler_En_Tp_filler_","En_St","_filler_En_Bw_filler_","En_A_Obj","Obj_Wturn","En_River_Sound","_filler_En_Horse_Normal_filler_","En_Ossan","_filler_En_Horse_Ganon_filler_","_filler_En_Xc_filler_","En_Famos","_filler_En_Mb_filler_","En_Bombf","_filler_En_Zl2_filler_","_filler_En_OE2_filler_","En_Am","En_Dekubaba","En_M_Fire1","En_M_Thunder","Bg_Breakwall","_filler_En_Horse_Zelda_filler_","Door_Warp1","Obj_Syokudai","Item_B_Heart","En_Dekunuts","En_Bbfall","Arms_Hook","En_Bb","Bg_Keikoku_Spr","_filler_Bg_Mjin_filler_","En_Wood02","_filler_En_Lightbox_filler_","En_Death","En_Minideath","_filler_En_Ta_filler_","_filler_En_Tk_filler_","En_Vm","Demo_Effect","Demo_Kankyo","En_Floormas","_filler_En_Heishi1_filler_","En_Rd","Bg_F40_Flift","_filler_Bg_Heavy_Block_filler_","Obj_Mure","En_Sw","Object_Kankyo","_filler_En_Du_filler_","_filler_En_Fd_filler_","En_Horse_Link_Child","Door_Ana","_filler_Magic_Wind_filler_","_filler_Magic_Fire_filler_","_filler_En_Fd_Fire_filler_","_filler_En_Dh_filler_","_filler_En_Dha_filler_","En_Encount1","Demo_Tre_Lgt","_filler_En_Fw_filler_","_filler_En_Heishi2_filler_","En_Encount2","En_Fire_Rock","Bg_Ctower_Rot","Mir_Ray","_filler_En_Tana_filler_","En_Sb","En_Bigslime","En_Karebaba","En_In","_filler_En_Tr_filler_","En_Ru","En_Bom_Chu","En_Horse_Game_Check","En_Rr","_filler_En_Ba_filler_","_filler_En_Bx_filler_","_filler_En_Anubice_filler_","_filler_En_Anubice_Fire_filler_","_filler_En_Ma_filler_","_filler_En_Ny_filler_","En_Fr","_filler_Item_Shield_filler_","_filler_En_Ice_Hono_filler_","_filler_Item_Ocarina_filler_","_filler_Magic_Dark_filler_","_filler_En_Anubice_Tag_filler_","_filler_Fishing_filler_","Obj_Oshihiki","Eff_Dust","Bg_Umajump","Arrow_Fire","Arrow_Ice","Arrow_Light","Item_Etcetera","Obj_Kibako","Obj_Tsubo","_filler_En_Wonder_Item_filler_","En_Ik","_filler_En_Skj_filler_","_filler_En_Skjneedle_filler_","_filler_En_G_Switch_filler_","_filler_Demo_Ext_filler_","Demo_Shd","En_Dns","Elf_Msg","En_Honotrap","En_Tubo_Trap","Obj_Ice_Poly","En_Fz","En_Kusa","Obj_Bean","Obj_Bombiwa","Obj_Switch","_filler_Obj_Elevator_filler_","Obj_Lift","Obj_Hsblock","En_Okarina_Tag","_filler_En_Yabusame_Mark_filler_","En_Goroiwa","_filler_En_Ex_Ruppy_filler_","_filler_En_Toryo_filler_","En_Daiku","En_Nwc","Item_Inbox","En_Ge1","Obj_Blockstop","En_Sda","En_Clear_Tag","_filler_En_Niw_Lady_filler_","En_Gm","En_Ms","En_Hs","Bg_Ingate","En_Kanban","_filler_En_Heishi3_filler_","En_Attack_Niw","_filler_En_Sa_filler_","_filler_En_Wonder_Talk_filler_","_filler_En_Ds_filler_","En_Mk","En_Owl","En_Ishi","Obj_Hana","Obj_Lightswitch","Obj_Mure2","_filler_En_Dnc_filler_","En_Fu","_filler_En_Changer_filler_","_filler_En_Siofuki_filler_","En_Stream","En_Mm","_filler_En_Ko_filler_","_filler_En_Kz_filler_","En_Weather_Tag","En_Ani","_filler_En_Ex_Item_filler_","En_Js","_filler_En_Jsjutan_filler_","_filler_En_Cs_filler_","_filler_En_Md_filler_","_filler_En_Hy_filler_","En_Okarina_Effect","En_Mag","Elf_Msg2","Bg_F40_Swlift","_filler_Bg_Zg_filler_","_filler_En_Heishi4_filler_","En_Kakasi","Obj_Makeoshihiki","Oceff_Spot","_filler_End_Title_filler_","En_Torch","_filler_Demo_Ec_filler_","Shot_Sun","_filler_En_Wonder_Talk2_filler_","_filler_En_Ge2_filler_","Obj_Roomtimer","En_Ssh","_filler_En_Sth_filler_","Oceff_Wipe","Oceff_Storm","Obj_Demo","En_Minislime","En_Nutsball","_filler_Bg_Spot00_Break_filler_","_filler_En_Shopnuts_filler_","_filler_En_It_filler_","_filler_En_GeldB_filler_","Oceff_Wipe2","Oceff_Wipe3","_filler_En_Niw_Girl_filler_","En_Dg","En_Si","Obj_Comb","Obj_Kibako2","_filler_En_Guest_filler_","En_Hs2","Obj_Mure3","En_Tg","_filler_En_Mu_filler_","_filler_En_Go2_filler_","En_Wf","En_Skb","_filler_En_Gb_filler_","En_Gs","Obj_Sound","En_Crow","_filler_En_Ma3_filler_","En_Cow","_filler_En_Kakasi2_filler_","_filler_En_Kakasi3_filler_","Oceff_Wipe4","_filler_En_Eg_filler_","En_Zo","Obj_Makekinsuta","En_Ge3","_filler_Obj_Timeblock_filler_","Obj_Hamishi","En_Zl4","En_Mm2","_filler_Obj_Warp2block_filler_","Door_Spiral","_filler_Obj_Fence_filler_","Obj_Pzlblock","Obj_Toge","_filler_Obj_Hampost_filler_","Obj_Armos","Obj_Boyo","_filler_Boss_Dodongo_filler_","_filler_Boss_Goma_filler_","En_Grasshopper","_filler_Obj_Swfl_filler_","Obj_Grass","Obj_Grass_Carry","Obj_Grass_Unit","_filler_En_Gl1_filler_","_filler_En_Gl2_filler_","Bg_Fire_Wall","En_Bu","En_Encount3","En_Jso","Obj_Chikuwa","En_Knight","En_Warp_tag","En_Aob_01","En_Boj_01","En_Boj_02","En_Boj_03","En_Encount4","En_Bom_Bowl_Man","En_Syateki_Man","_filler_En_Takara_Man_filler_","Bg_Icicle","En_Syateki_Crow","En_Boj_04","En_Cne_01","En_Bba_01","En_Bji_01","Bg_Spdweb","_filler_En_Yh_filler_","_filler_En_Mt_filler_","En_Mt_tag","Boss_01","Boss_02","Boss_03","Boss_04","Boss_05","Boss_06","Boss_07","Bg_Dy_Yoseizo","_filler_En_Stay_filler_","En_Boj_05","_filler_En_Of1_01_filler_","_filler_En_Gskb_filler_","En_Sob1","_filler_En_Of1_02_filler_","_filler_En_Of1_03_filler_","En_Go","_filler_En_Of1_05_filler_","En_Raf","Obj_Funen","Obj_Raillift","Bg_Numa_Hana","Obj_Flowerpot","Obj_Spinyroll","Dm_Hina","En_Syateki_Wf","Obj_Skateblock","Obj_Iceblock","En_Bigpamet","En_Syateki_Dekunuts","Elf_Msg3","En_Fg","Dm_Ravine","Dm_Sa","En_Slime","En_Pr","Obj_Toudai","Obj_Entotu","Obj_Bell","En_Syateki_Okuta","_filler_En_Colociam_filler_","Obj_Shutter","Dm_Zl","En_Elfgrp","Dm_Tsg","En_Baguo","Obj_Vspinyroll","Obj_Smork","En_Test2","En_Test3","En_Test4","En_Bat","En_Sekihi","En_Wiz","En_Wiz_Brock","En_Wiz_Fire","Eff_Change","Dm_Statue","Obj_Fireshield","Bg_Ladder","En_Mkk","Demo_Getitem","_filler_Obj_Stain_filler_","En_Dnb","En_Dnh","En_Dnk","En_Dnq","_filler_En_Dnc_Tag_filler_","Bg_Keikoku_Saku","Obj_Hugebombiwa","En_Firefly2","En_Rat","En_Water_Effect","En_Kusa2","Bg_Spout_Fire","_filler_En_TimeTime_filler_","Bg_Dblue_Movebg","En_Dy_Extra","En_Bal","En_Ginko_Man","En_Warp_Uzu","Obj_Driftice","En_Look_Nuts","En_Mushi2","En_Fall","En_Mm3","Bg_Crace_Movebg","En_Dno","En_Pr2","En_Prz","En_Jso2","Obj_Etcetera","En_Egol","Obj_Mine","Obj_Purify","En_Tru","En_Trt","_filler_En_Egrock_filler_","_filler_En_Sd_filler_","En_Test5","En_Test6","En_Az","En_Estone","Bg_Hakugin_Post","Dm_Opstage","Dm_Stk","Dm_Char00","Dm_Char01","Dm_Char02","Dm_Char03","Dm_Char04","Dm_Char05","Dm_Char06","Dm_Char07","Dm_Char08","Dm_Char09","Obj_Tokeidai","_filler_En_Goron_game_check_filler_","En_Mnk","En_Egblock","En_Guard_Nuts","Bg_Hakugin_Bombwall","Obj_Tokei_Tobira","Bg_Hakugin_Elvpole","En_Ma4","En_Twig","En_Po_Fusen","En_Door_Etc","En_Bigokuta","Bg_Icefloe","Obj_Ocarinalift","En_Time_Tag","Bg_Open_Shutter","Bg_Open_Spot","Bg_Fu_Kaiten","Obj_Aqua","En_Elforg","En_Elfbub","_filler_En_Ton_filler_","En_Fu_Mato","En_Fu_Kago","En_Osn","Bg_Ctower_Gear","En_Trt2","Obj_Tokei_Step","Bg_Lotus","En_Kame","Obj_Takaraya_Wall","Bg_Fu_Mizu","En_Sellnuts","Bg_Dkjail_Ivy","_filler_En_Ton2_filler_","Obj_Visiblock","En_Takaraya","En_Tsn","En_Ds2n","En_Fsn","En_Shn","_filler_En_Ton_bal_filler_","En_Stop_heishi","Obj_Bigicicle","En_Lift_Nuts","En_Tk","_filler_En_Ton3_filler_","Bg_Market_Step","Obj_Lupygamelift","En_Test7","Obj_Lightblock","Mir_Ray2","En_Wdhand","En_Gamelupy","Bg_Danpei_Movebg","En_Snowwd","En_Pm","En_Gakufu","Elf_Msg4","Elf_Msg5","En_Col_Man","En_Talk_Gibud","En_Giant","Obj_Snowball","Boss_Hakugin","En_Gb2","En_Onpuman","Bg_Tobira01","En_Tag_Obj","Obj_Dhouse","Obj_Hakaisi","Bg_Hakugin_Switch","_filler_En_Btlpoh_filler_","En_Snowman","TG_Sw","En_Po_Sisters","En_Pp","En_Hakurock","En_Hanabi","Obj_Dowsing","Obj_Wind","En_Racedog","En_Kendo_Js","Bg_Botihasira","En_Fish2","En_Pst","En_Poh","Obj_Spidertent","En_Zoraegg","En_Kbt","En_Gg","En_Maruta","Obj_Snowball2","En_Gg2","Obj_Ghaka","En_Dnp","En_Dai","Bg_Goron_Oyu","En_Kgy","En_Invadepoh","En_Gk","En_An","_filler_En_Sellnuts2_filler_","En_Bee","En_Ot","En_Dragon","Obj_Dora","En_Bigpo","Obj_Kendo_Kanban","Obj_Hariko","En_Sth","Bg_Sinkai_Kabe","Bg_Haka_Curtain","Bg_Kin2_Bombwall","Bg_Kin2_Fence","Bg_Kin2_Picture","Bg_Kin2_Shelf","En_Rail_Skb","En_Jg","En_Tru_Mt","Obj_Um","En_Neo_Reeba","Bg_Mbar_Chair","Bg_Ikana_Block","Bg_Ikana_Mirror","Bg_Ikana_Rotaryroom","Bg_Dblue_Balance","Bg_Dblue_Waterfall","En_Kaizoku","En_Ge2","En_Ma_Yts","En_Ma_Yto","Obj_Tokei_Turret","Bg_Dblue_Elevator","Obj_Warpstone","En_Zog","Obj_Rotlift","Obj_Jg_Gakki","Bg_Inibs_Movebg","En_Zot","Obj_Tree","Obj_Y2lift","Obj_Y2shutter","Obj_Boat","Obj_Taru","Obj_Hunsui","En_Jc_Mato","Mir_Ray3","En_Zob","Elf_Msg6","Obj_Nozoki","En_Toto","En_Railgibud","En_Baba","En_Suttari","En_Zod","En_Kujiya","En_Geg","Obj_Kinoko","Obj_Yasi","En_Tanron1","En_Tanron2","En_Tanron3","Obj_Chan","En_Zos","En_S_Goro","En_Nb","En_Ja","Bg_F40_Block","Bg_F40_Switch","En_Po_Composer","En_Guruguru","Oceff_Wipe5","En_Stone_heishi","Oceff_Wipe6","En_Scopenuts","En_Scopecrow","Oceff_Wipe7","Eff_Kamejima_Wave","En_Hg","En_Hgo","En_Zov","En_Ah","Obj_Hgdoor","Bg_Ikana_Bombwall","Bg_Ikana_Ray","Bg_Ikana_Shutter","Bg_Haka_Bombwall","Bg_Haka_Tomb","En_Sc_Ruppe","Bg_Iknv_Doukutu","Bg_Iknv_Obj","En_Pamera","Obj_HsStump","En_Hidden_Nuts","En_Zow","En_Talk","En_Al","En_Tab","En_Nimotsu","En_Hit_Tag","En_Ruppecrow","En_Tanron4","En_Tanron5","En_Tanron6","En_Daiku2","En_Muto","En_Baisen","En_Heishi","En_Demo_heishi","En_Dt","En_Cha","Obj_Dinner","Eff_Lastday","Bg_Ikana_Dharma","En_Akindonuts","Eff_Stk","En_Ig","En_Rg","En_Osk","En_Sth2","En_Yb","En_Rz","En_Scopecoin","En_Bjt","En_Bomjima","En_Bomjimb","En_Bombers","En_Bombers2","En_Bombal","Obj_Moon_Stone","Obj_Mu_Pict","Bg_Ikninside","Eff_Zoraband","Obj_Kepn_Koya","Obj_Usiyane","En_Nnh","Obj_Kzsaku","Obj_Milk_Bin","En_Kitan","Bg_Astr_Bombwall","Bg_Iknin_Susceil","En_Bsb","En_Recepgirl","En_Thiefbird","En_Jgame_Tsn","Obj_Jgame_Light","Obj_Yado","Demo_Syoten","Demo_Moonend","Bg_Lbfshot","Bg_Last_Bwall","En_And","En_Invadepoh_Demo","Obj_Danpeilift","En_Fall2","Dm_Al","Dm_An","Dm_Ah","Dm_Nb","En_Drs","En_Ending_Hero","Dm_Bal","En_Paper","En_Hint_Skb","Dm_Tag","En_Bh","En_Ending_Hero2","En_Ending_Hero3","En_Ending_Hero4","En_Ending_Hero5","En_Ending_Hero6","Dm_Gm","Obj_Swprize","En_Invisible_Ruppe","Obj_Ending","En_Rsn"],
-    "AF": ["Player","BgItem","Sample","Fieldm_Draw","Field_Draw","Airplane","Room_Sunshine","Lamp_Light","Ev_Angler","Ball","Haniwa","My_Room","Mbg","T_Tama","BoxManager","BoxMove","BoxTrick01","Arrange_Room","Arrange_Furniture","TrainDoor","T_Keitai","Halloween_Npc","Ev_Pumpkin","Ride_Off_Demo","Npc_Mamedanuki","Hanabi_Npc0","Hanabi_Npc1","Snowman","Npc_Post_Girl","Npc_Engineer","Npc_Majin3","Npc_Sleep_Obaba","Npc","Effect_Control","Npc2","Kamakura_Npc0","Npc_Post_Man","Shop_Design","Quest_Manager","MailBox","House","Shop_Level","Shop","MyHouse","Ev_Artist","Ev_Broker","Ev_Designer","T_Umbrella","Npc_Shop_Master","Birth_Control","Shop_Manekin","Shop_Indoor","Event_Manager","Shop_Goods","BrShop","Weather","Post_Office","Npc_Guide","Npc_Guide2","Insect","Station","Ev_CarpetPeddler","Ev_KabuPeddler","Reserve","HandOverItem","Npc_Conv_Master","Npc_Super_Master","Npc_Depart_Master","Tools","Structure","Ev_Gypsy","Npc_Police","Train0","Train1","Npc_Station_Master","Ev_Santa","Npc_Police2","Police_Box","BgPoliceItem","BgCherryItem","BgWinterItem","BgXmasItem","BgPostItem","FallS","FallSESW","Ev_Broker2","Broker_Design","T_Utiwa","Psnowman","My_Indoor","Npc_Rcn_Guide","Intro_Demo","Shrine","Buggy","T_Hanabi","Conveni","Super","Depart","Hanami_Npc0","S_Car","Hanami_Npc1","Npc_P_Sel","Npc_P_Sel2","Npc_Rcn_Guide2","Train_Window","Npc_Majin4","Kamakura","Gyoei","Npc_Majin","T_NpcSao","_filler_Train_Control_filler_","Uki","Npc_Majin2","Normal_Npc","Set_Manager","Set_Npc_Manager","Npc_Shop_Mastersp","Room_Sunshine_Posthouse","Room_Sunshine_Police","Effectbg","Ev_Cherry_Manager","Ev_Yomise","Tokyoso_Npc0","Tokyoso_Npc1","Goza","Radio","Yatai","Tokyoso_Control","Shop_Umbrella","Gyo_Release","Tukimi","Kamakura_Indoor","Ev_Miko","Gyo_Kage","Mikuji","House_Goki","T_Cracker","_filler_T_Sensu_filler_","T_Pistol","T_Flag","T_Tumbler","Tukimi_Npc0","Tukimi_Npc1","_filler_Tukimi_Npc2_filler_","Countdown_Npc0","Countdown_Npc1","Turi_Npc0","Taisou_Npc0","Count","Garagara","Tamaire_Npc0","Tamaire_Npc1","Hatumode_Npc0","Npc_Totakeke","Count02","Hatumode_Control","Tama","Kago","Turi","House_Clock","Tunahiki_Control","Tunahiki_Npc0","Tunahiki_Npc1","Koinobori","Bee","Nameplate","Dump","Rope","Ev_Dozaemon","Windmill","Lotus","Animal_Logo","Mikanbox","Douzou","Npc_Rtc","Toudai","Npc_Restart","Npc_Majin5","Fuusen","Ev_Dokutu","Dummy","_filler_Dummy2C_filler_","_filler_Dummy2D_filler_","_filler_Dummy2E_filler_","_filler_Dummy2F_filler_","_filler_Dummy30_filler_","_filler_Dummy31_filler_","_filler_Dummy32_filler_","_filler_Dummy33_filler_","_filler_Dummy34_filler_","_filler_Dummy35_filler_","_filler_Dummy36_filler_","_filler_Dummy37_filler_","_filler_Dummy38_filler_","_filler_Dummy39_filler_","_filler_Dummy3A_filler_","_filler_Dummy3B_filler_","_filler_Dummy3C_filler_","_filler_Dummy3D_filler_","_filler_Dummy3E_filler_","_filler_Dummy3F_filler_"]
-}
+actor_strings_search = [
+	"\x84\xbf\x1e\x00\xc4\xc0\x1e\x00",
+	"\xb4\x96\x20\x00\xcc\x98\x20\x00",
+	"\x28\xc1\x1e\x00\x40\xc3\x1e\x00",
+	"\x68\x08\x22\x00\x80\x0a\x22\x00",
+	"\x70\x97\x28\x00\x88\x9a\x28\x00",
+	"\x08\x65\x27\x00\xb8\x67\x27\x00",
+	"\x98\xf8\x23\x00\x28\xf9\x23\x00",
+	"\xb4\x0a\x22\x00\xa4\x0d\x22\x00",
+	"\x40\xf9\x23\x00\x80\xfa\x23\x00",
+	"\xb0\xfa\x23\x00\x00\xfc\x23\x00",
+	"\x00\x99\x20\x00\xc0\x99\x20\x00",
+	"\xf0\x99\x20\x00\xec\x9a\x20\x00",
+	"\x2c\x9b\x20\x00\x94\x9c\x20\x00",
+	"\x10\xdd\x25\x00\x28\xde\x25\x00",
+	"\x50\xa4\x28\x00\x88\xa5\x28\x00",
+	"\xd4\xa5\x28\x00\xd8\xa6\x28\x00",
+	"\x8c\x69\x27\x00\x7c\x6a\x27\x00",
+	"\xb4\xa3\x29\x00\x9c\xa6\x29\x00",
+	"\xfc\xa6\x29\x00\xc0\xa7\x29\x00",
+	"\x08\xa7\x28\x00\x18\xa8\x28\x00",
+	"\x48\xa8\x28\x00\xe8\xa8\x28\x00",
+	"\xfc\xa7\x29\x00\xa0\xa9\x29\x00",
+	"\xd0\x60\x1a\x00\x90\x61\x1a\x00",
+	"\x70\xfe\x23\x00\xd0\x01\x24\x00",
+	"\x54\x02\x24\x00\x28\x03\x24\x00",
+	"\xbc\x6e\x27\x00\x3c\x6f\x27\x00",
+	"\xd0\xa9\x29\x00\xf4\xab\x29\x00",
+	"\xd8\xde\x25\x00\x4c\xe1\x25\x00",
+	"\x58\x03\x24\x00\xdc\x04\x24\x00",
+	"\x2c\x05\x24\x00\x48\x08\x24\x00",
+	"\xdc\x08\x24\x00\xf4\x0a\x24\x00",
+	"\x9c\xe1\x25\x00\x04\xe3\x25\x00",
+	"\x20\x0e\x22\x00\x78\x10\x22\x00",
+	"\xc0\x76\x27\x00\xdc\x79\x27\x00",
+	"\xc8\xae\x29\x00\xa0\xb1\x29\x00",
+	"\x8c\xe3\x25\x00\x94\xe4\x25\x00",
+	"\x54\xba\x2a\x00\x34\xbb\x2a\x00",
+	"\x14\xae\x28\x00\x10\xaf\x28\x00",
+	"\x2c\x7a\x27\x00\x90\x7c\x27\x00",
+	"\xcc\xb4\x29\x00\xf0\xb8\x29\x00",
+	"\xb8\x7c\x27\x00\xcc\x7f\x27\x00",
+	"\x0c\x80\x27\x00\x78\x81\x27\x00",
+	"\x30\x48\x39\x00\xdc\x49\x39\x00",
+	"\xd8\xe4\x25\x00\x94\xe6\x25\x00",
+	"\x24\xbc\x2a\x00\xbc\xbe\x2a\x00",
+	"\xe8\xb9\x29\x00\xd0\xbc\x29\x00",
+	"\xe8\xe6\x25\x00\xf0\xe8\x25\x00",
+	"\xa8\x81\x27\x00\x54\x82\x27\x00",
+	"\x84\x82\x27\x00\x50\x83\x27\x00",
+	"\x80\x83\x27\x00\x6c\x87\x27\x00",
+	"\xfc\x87\x27\x00\x70\x89\x27\x00",
+	"\x50\xe9\x25\x00\x4c\xea\x25\x00",
+	"\x38\xc4\x1e\x00\x4c\xc5\x1e\x00",
+	"\x8c\xea\x25\x00\x00\xec\x25\x00",
+	"\x30\xbf\x2a\x00\xc0\xbf\x2a\x00",
+	"\xac\xc0\x29\x00\x1c\xc2\x29\x00",
+	"\x48\x0b\x24\x00\x08\x0c\x24\x00",
+	"\xf0\xbf\x2a\x00\xf8\xc1\x2a\x00",
+	"\x14\x8a\x27\x00\xe0\x8a\x27\x00",
+	"\x38\x0c\x24\x00\xa0\x10\x24\x00",
+	"\xec\x97\x27\x00\x00\x99\x27\x00",
+	"\xb4\xc6\x29\x00\x9c\xc7\x29\x00",
+	"\x28\x99\x27\x00\x38\x9a\x27\x00",
+	"\x78\x9a\x27\x00\x38\x9b\x27\x00",
+	"\x18\x11\x22\x00\x28\x12\x22\x00",
+	"\x64\xed\x25\x00\x34\xef\x25\x00",
+	"\x74\xc2\x2a\x00\x68\xc3\x2a\x00",
+	"\x68\x9b\x27\x00\x18\x9c\x27\x00",
+	"\xb8\xc3\x2a\x00\x70\xc4\x2a\x00",
+	"\x3c\x30\x38\x00\x88\x30\x38\x00",
+	"\xc4\xef\x25\x00\x64\xf7\x25\x00",
+	"\x40\x9c\x27\x00\xbc\xa1\x27\x00",
+	"\x84\x31\x3a\x00\xe8\x31\x3a\x00",
+	"\xdc\xbc\x28\x00\x2c\xc0\x28\x00",
+	"\x74\x12\x22\x00\xf0\x12\x22\x00",
+	"\xb0\xf7\x25\x00\x78\xfa\x25\x00",
+	"\xc4\x61\x1a\x00\x20\x62\x1a\x00",
+	"\x84\xfa\x25\x00\x88\xfb\x25\x00",
+	"\x1c\xcf\x29\x00\x14\xd0\x29\x00",
+	"\xd8\xc2\x28\x00\x14\xc5\x28\x00",
+	"\x68\xd0\x29\x00\xf8\xd1\x29\x00",
+	"\x54\xa2\x27\x00\x30\xa4\x27\x00",
+	"\x70\xc5\x28\x00\xcc\xc6\x28\x00",
+	"\x68\xac\x37\x00\x28\xad\x37\x00",
+	"\x58\xad\x37\x00\x2c\xae\x37\x00",
+	"\x08\x13\x22\x00\x9c\x18\x22\x00",
+	"\x80\xa4\x27\x00\x0c\xa7\x27\x00",
+	"\xf4\xd8\x29\x00\x38\xdb\x29\x00",
+	"\xf4\xc6\x28\x00\xcc\xc7\x28\x00",
+	"\xdc\xae\x37\x00\x24\xb3\x37\x00",
+	"\x00\xc8\x28\x00\x84\xc8\x28\x00",
+	"\x7c\xb7\x38\x00\xa4\xb8\x38\x00",
+	"\x04\xc7\x2a\x00\xbc\xc7\x2a\x00",
+	"\xc8\xc7\x2a\x00\x7c\xc8\x2a\x00",
+	"\xa4\xb3\x37\x00\x6c\xb4\x37\x00",
+	"\xac\xc8\x2a\x00\x5c\xcc\x2a\x00",
+	"\x64\xa7\x27\x00\x78\xa8\x27\x00",
+	"\xac\xa8\x27\x00\xe8\xa9\x27\x00",
+	"\xc4\xcc\x2a\x00\xe4\xd1\x2a\x00",
+	"\x1c\xaa\x27\x00\x24\xac\x27\x00",
+	"\xa4\x4a\x39\x00\x8c\x4b\x39\x00",
+	"\x9c\xb4\x37\x00\xf4\xb7\x37\x00",
+	"\xa4\xfd\x25\x00\x88\xfe\x25\x00",
+	"\xcc\x4b\x39\x00\xdc\x4c\x39\x00",
+	"\x0c\xc9\x28\x00\x94\xc9\x28\x00",
+	"\x74\xac\x27\x00\x3c\xad\x27\x00",
+	"\x6c\xad\x27\x00\xa4\xae\x27\x00",
+	"\xa0\xc9\x28\x00\xac\xca\x28\x00",
+	"\xd4\xae\x27\x00\xa4\xaf\x27\x00",
+	"\x34\x34\x38\x00\x78\x37\x38\x00",
+	"\x28\xb8\x37\x00\x18\xba\x37\x00",
+	"\xa8\x4d\x39\x00\x5c\x4e\x39\x00",
+	"\xec\xca\x28\x00\x50\xcb\x28\x00",
+	"\xb4\xe0\x29\x00\x4c\xe2\x29\x00",
+	"\xd4\xaf\x27\x00\x5c\xb0\x27\x00",
+	"\xe4\xfe\x25\x00\x60\xff\x25\x00",
+	"\x14\xd6\x2a\x00\x80\xd7\x2a\x00",
+	"\xf8\x11\x24\x00\x84\x12\x24\x00",
+	"\x3c\xb4\x27\x00\x6c\xb5\x27\x00",
+	"\x28\x19\x22\x00\xf8\x19\x22\x00",
+	"\xb4\x12\x24\x00\x34\x14\x24\x00",
+	"\xec\x9c\x20\x00\xc8\x9d\x20\x00",
+	"\xf8\x9d\x20\x00\x80\x9e\x20\x00",
+	"\x44\x19\x24\x00\x2c\x1b\x24\x00",
+	"\x20\xb8\x27\x00\xe4\xba\x27\x00",
+	"\xb0\x9e\x20\x00\x30\xa3\x20\x00",
+	"\x18\xe7\x29\x00\xec\xe7\x29\x00",
+	"\x50\x14\x16\x00\x04\x0f\x35\x00",
+	"\x00\x1f\x24\x00\xc8\x22\x24\x00",
+	"\xc4\x62\x1a\x00\x58\x6c\x1a\x00",
+	"\xac\x08\x1d\x00\x88\x0b\x1d\x00",
+	"\x70\xae\x20\x00\xf0\xbd\x20\x00",
+	"\x20\x1a\x22\x00\x74\x1b\x22\x00",
+	"\xbc\xcb\x28\x00\x30\xce\x28\x00",
+	"\xc8\xcb\x27\x00\xb8\xce\x27\x00",
+	"\x84\xd8\x1e\x00\x68\xdb\x1e\x00",
+	"\xf4\x6d\x1a\x00\x58\x7c\x1a\x00",
+	"\x04\x0d\x1d\x00\xd4\x15\x1d\x00",
+	"\x18\x7e\x1a\x00\xe8\x88\x1a\x00",
+	"\x5c\x8a\x1a\x00\x2c\x9c\x1a\x00",
+	"\x54\x9f\x1a\x00\x28\xa4\x1a\x00",
+	"\xbc\xa5\x1a\x00\x1c\xa9\x1a\x00",
+	"\x38\xa9\x1a\x00\x6c\xa9\x1a\x00",
+	"\x5c\x34\x22\x00\xb8\x45\x22\x00",
+	"\xc4\x20\x1d\x00\xbc\x21\x1d\x00",
+	"\x5c\x09\x1f\x00\x90\x09\x1f\x00",
+	"\xc8\xa9\x1a\x00\xf4\xad\x1a\x00",
+	"\xb0\xae\x1a\x00\xc8\xaf\x1a\x00",
+	"\xe4\xaf\x1a\x00\x88\xb4\x1a\x00",
+	"\xf0\xb4\x1a\x00\x04\xb7\x1a\x00",
+	"\x0c\xb7\x1a\x00\x9c\xb9\x1a\x00",
+	"\x58\x4b\x22\x00\x08\x50\x22\x00",
+	"\x38\x51\x22\x00\x24\x55\x22\x00",
+	"\xcc\xb9\x1a\x00\xc0\xbd\x1a\x00",
+	"\x84\x24\x1d\x00\x78\x25\x1d\x00",
+	"\xe8\x52\x24\x00\x94\x57\x33\x00",
+	"\x3c\x31\x1d\x00\x60\x33\x1d\x00",
+	"\xec\x56\x22\x00\xc8\x57\x22\x00",
+	"\x04\x58\x22\x00\xf8\x5e\x22\x00",
+	"\xe0\x53\x24\x00\xe0\x55\x24\x00",
+	"\x34\x0f\x1f\x00\xa4\x0f\x1f\x00",
+	"\x6c\xcf\x20\x00\x80\xd2\x20\x00",
+	"\xbc\x0f\x1f\x00\x6c\x11\x1f\x00",
+	"\x90\x33\x1d\x00\xec\x36\x1d\x00",
+	"\xdc\xcb\x1a\x00\x48\xcd\x1a\x00",
+	"\x60\x3f\x1d\x00\xa4\x40\x1d\x00",
+	"\x34\x07\x1e\x00\x18\x96\x1f\x00",
+	"\x98\x20\x16\x00\x60\x08\x35\x00",
+	"\xec\x96\x18\x00\x18\x98\x18\x00",
+	"\x34\xdf\x20\x00\x4c\xe0\x20\x00",
+	"\xd8\x0e\x29\x00\xf8\x0f\x29\x00",
+	"\x04\xfc\x27\x00\x50\xfc\x27\x00",
+	"\x44\x01\x19\x00\x7c\x01\x19\x00",
+	"\xe0\x44\x1d\x00\x04\x4a\x1d\x00",
+	"\x5c\x58\x26\x00\xcc\x59\x26\x00",
+	"\xec\xb3\x16\x00\x4c\xb8\x16\x00",
+	"\x28\x23\x16\x00\x28\x2c\x16\x00",
+	"\x80\x2e\x1f\x00\xbc\x32\x1f\x00",
+	"\x18\x88\x22\x00\xd0\x89\x22\x00",
+	"\xcc\xd7\x1a\x00\x6c\xd9\x1a\x00",
+	"\xa4\xd9\x1a\x00\x8c\xe4\x1b\x00",
+	"\x5c\x3a\x1f\x00\xa4\x3b\x1f\x00",
+	"\x54\x98\x18\x00\xb4\x99\x18\x00",
+	"\xb0\x17\x29\x00\x6c\x19\x29\x00",
+	"\xbc\x19\x29\x00\xd4\x19\x29\x00",
+	"\x84\xe9\x20\x00\x2c\xeb\x20\x00",
+	"\x48\x0b\x1e\x00\x38\x0d\x1e\x00",
+	"\x70\xda\x1a\x00\xb8\xdb\x1a\x00",
+	"\xec\x99\x18\x00\xa8\x9f\x18\x00",
+	"\x10\xdc\x1a\x00\x98\xde\x1a\x00",
+	"\x50\x48\x1f\x00\x34\x4a\x1f\x00",
+	"\x84\x2c\x16\x00\x20\x04\x35\x00",
+	"\xac\xb8\x16\x00\xf0\xbb\x16\x00",
+	"\x50\xec\x20\x00\x88\xf0\x20\x00",
+	"\x9c\xeb\x1a\x00\xc8\xee\x1a\x00",
+	"\x3c\x90\x24\x00\x40\x90\x24\x00",
+	"\xd4\x9f\x18\x00\xe4\xa3\x18\x00",
+	"\x98\xef\x1a\x00\xbc\xf0\x1a\x00",
+	"\x30\x2e\x16\x00\x34\x01\x35\x00",
+	"\x14\x64\x1d\x00\x30\x67\x1d\x00",
+	"\xf4\x12\x2b\x00\x34\x16\x2b\x00",
+	"\xdc\x8f\x22\x00\x0c\x93\x22\x00",
+	"\x68\x93\x22\x00\xd8\x95\x22\x00",
+	"\x34\xbc\x16\x00\x64\xbe\x16\x00",
+	"\x84\x01\x19\x00\x90\x02\x19\x00",
+	"\x94\x01\x28\x00\xe0\x02\x28\x00",
+	"\x30\xa4\x18\x00\x3c\xa6\x18\x00",
+	"\x28\x96\x22\x00\x5c\x97\x22\x00",
+	"\x60\x97\x22\x00\x64\x98\x22\x00",
+	"\x60\x92\x24\x00\x98\xea\x34\x00",
+	"\xe8\x51\x1f\x00\xcc\x52\x1f\x00",
+	"\x94\xf2\x20\x00\x34\xf5\x20\x00",
+	"\x60\xa6\x18\x00\xb8\xa8\x18\x00",
+	"\xa8\xf5\x1a\x00\xdc\x28\x34\x00",
+	"\x20\x34\x16\x00\xc0\x0b\x35\x00",
+	"\x4c\x35\x16\x00\xc0\x37\x16\x00",
+	"\x9c\x98\x22\x00\x88\x99\x22\x00",
+	"\x08\x38\x16\x00\x14\x38\x16\x00",
+	"\xb8\x6c\x1d\x00\x94\x6e\x1d\x00",
+	"\xe0\xa8\x18\x00\x2c\xb1\x18\x00",
+	"\x94\x99\x22\x00\x50\x9b\x22\x00",
+	"\x74\x9b\x22\x00\x38\x9c\x22\x00",
+	"\x50\xfc\x20\x00\xe0\xfd\x20\x00",
+	"\x48\x9c\x22\x00\x7c\x9f\x22\x00",
+	"\x18\x38\x16\x00\x2c\x0b\x35\x00",
+	"\x10\xfe\x20\x00\x3c\xff\x20\x00",
+	"\xc0\x02\x19\x00\xb0\x04\x19\x00",
+	"\x88\x9f\x22\x00\x50\xa4\x22\x00",
+	"\x64\xa1\x24\x00\x1c\xa5\x24\x00",
+	"\x60\xff\x20\x00\x54\x01\x21\x00",
+	"\xc4\xa4\x22\x00\xf0\xa6\x22\x00",
+	"\x88\x3a\x16\x00\x7c\x01\x35\x00",
+	"\x00\x3b\x16\x00\xa0\x3c\x16\x00",
+	"\xdc\x3c\x16\x00\x4c\x3e\x16\x00",
+	"\x94\x3e\x16\x00\x60\xfd\x34\x00",
+	"\x20\xa7\x22\x00\x5c\xaa\x22\x00",
+	"\x6c\x96\x26\x00\x7c\x96\x26\x00",
+	"\x0c\x0e\x28\x00\x34\x0e\x28\x00",
+	"\x14\x41\x16\x00\xac\x0f\x35\x00",
+	"\x18\xb2\x18\x00\xd8\xb4\x18\x00",
+	"\x14\xb5\x18\x00\x68\xb7\x18\x00",
+	"\xa4\xb7\x18\x00\x28\xb9\x18\x00",
+	"\xd8\x7b\x1d\x00\xac\x7e\x1d\x00",
+	"\x20\x7f\x1d\x00\x8c\x7f\x1d\x00",
+	"\xec\xf7\x18\x00\xfc\xfa\x18\x00",
+	"\xc8\x45\x16\x00\xec\x45\x16\x00",
+	"\x64\xb9\x18\x00\x14\xbf\x18\x00",
+	"\xc8\x2f\x1b\x00\xc4\x33\x1b\x00",
+	"\xc8\x03\x21\x00\x50\x06\x21\x00",
+	"\x1c\x46\x16\x00\x4c\x47\x16\x00",
+	"\x08\x8d\x1d\x00\x48\x8d\x1d\x00",
+	"\x8c\x3a\x1b\x00\xb0\x3c\x1b\x00",
+	"\x80\x0a\x21\x00\xb4\x0c\x21\x00",
+	"\x1c\x0d\x21\x00\x84\x10\x21\x00",
+	"\x30\x11\x21\x00\x68\x12\x21\x00",
+	"\xd0\x12\x21\x00\xf0\x14\x21\x00",
+	"\x2c\xab\x22\x00\xe0\xad\x22\x00",
+	"\x08\xbd\x24\x00\x24\xbe\x24\x00",
+	"\xec\x3c\x1b\x00\x60\x3d\x1b\x00",
+	"\x30\xae\x22\x00\x48\xb1\x22\x00",
+	"\x04\x90\x1d\x00\xf8\x97\x1d\x00",
+	"\x8c\x6a\x38\x00\x08\x6b\x38\x00",
+	"\x6c\x47\x16\x00\x70\x47\x16\x00",
+	"\x6c\xbf\x18\x00\xdc\xc1\x18\x00",
+	"\x60\x1a\x16\x00\x1c\x20\x16\x00",
+	"\x74\x47\x16\x00\x78\x47\x16\x00",
+	"\x7c\x47\x16\x00\xb0\x48\x16\x00",
+	"\x1c\xc2\x18\x00\x04\xc3\x18\x00",
+	"\xe0\x48\x16\x00\xd0\x4a\x16\x00",
+	"\x90\xb1\x22\x00\x64\xb6\x22\x00",
+	"\x0c\x4b\x16\x00\xcc\x4f\x16\x00",
+	"\x74\x50\x16\x00\x40\x51\x16\x00",
+	"\x60\x54\x1b\x00\x98\x56\x1b\x00",
+	"\x88\x51\x16\x00\xdc\x51\x16\x00",
+	"\xb4\x69\x1f\x00\x6c\x70\x1f\x00",
+	"\xec\x51\x16\x00\xc4\x54\x16\x00",
+	"\x38\x55\x16\x00\x54\x56\x16\x00",
+	"\x88\x16\x21\x00\x3c\x17\x21\x00",
+	"\x94\x70\x1f\x00\x54\x71\x1f\x00",
+	"\xa0\x18\x21\x00\x48\x1a\x21\x00",
+	"\x6c\x1a\x21\x00\x30\x1b\x21\x00",
+	"\x80\x71\x1f\x00\x84\x74\x1f\x00",
+	"\xa4\xd7\x22\x00\x74\xd9\x22\x00",
+	"\x84\x56\x16\x00\x48\x59\x16\x00",
+	"\xec\x64\x1b\x00\xe8\x01\x35\x00",
+	"\x78\x59\x16\x00\x68\x5b\x16\x00",
+	"\x84\x05\x23\x00\xd4\x06\x23\x00",
+	"\x0c\x9a\x1d\x00\x10\x9d\x1d\x00",
+	"\x9c\x1d\x21\x00\x04\x1e\x21\x00",
+	"\x10\xc9\x24\x00\x48\xcd\x24\x00",
+	"\x34\xc3\x18\x00\xe4\xc5\x18\x00",
+	"\x14\xc6\x18\x00\x64\xc9\x18\x00",
+	"\x90\xc9\x18\x00\x8c\xcb\x18\x00",
+	"\xb8\xcb\x18\x00\x1c\xcf\x18\x00",
+	"\xa4\x5b\x16\x00\xe8\x5f\x16\x00",
+	"\x4c\x60\x16\x00\x48\x63\x16\x00",
+	"\x74\x63\x16\x00\x8c\x64\x16\x00",
+	"\xbc\x64\x16\x00\x0c\x68\x16\x00",
+	"\x80\xcf\x18\x00\x4c\xd1\x18\x00",
+	"\x50\x68\x16\x00\xcc\x69\x16\x00",
+	"\x00\x6a\x16\x00\xec\x6a\x16\x00",
+	"\x0c\xb2\x1d\x00\xc8\xb6\x1d\x00",
+	"\x18\x6b\x16\x00\xd8\x6e\x16\x00",
+	"\x90\xd1\x18\x00\xc8\xd5\x18\x00",
+	"\xe0\xd9\x22\x00\xbc\xdc\x22\x00",
+	"\x1c\xdd\x22\x00\xcc\xdd\x22\x00",
+	"\x3c\xde\x22\x00\xb4\xdf\x22\x00",
+	"\x1c\xd6\x18\x00\x44\x16\x16\x00",
+	"\x0c\x6f\x16\x00\x84\x71\x16\x00",
+	"\x5c\xd7\x18\x00\xe8\xda\x18\x00",
+	"\x10\xc6\x1d\x00\x7c\xc7\x1d\x00",
+	"\x48\xd7\x18\x00\x58\xd7\x18\x00",
+	"\xd4\x28\x2b\x00\xf8\x28\x2b\x00",
+	"\x68\x1d\x28\x00\xa0\x1e\x28\x00",
+	"\xb0\xc8\x1d\x00\xbc\xca\x1d\x00",
+	"\x28\xdb\x18\x00\xbc\xde\x18\x00",
+	"\x24\x87\x1b\x00\x38\x87\x1b\x00",
+	"\x84\x7d\x1f\x00\xe4\x80\x1f\x00",
+	"\xd4\xd0\x24\x00\x20\xd3\x24\x00",
+	"\xec\xdf\x22\x00\xe4\xe1\x22\x00",
+	"\x5c\xe2\x22\x00\x38\xe4\x22\x00",
+	"\x28\xd1\x26\x00\xa4\xd5\x26\x00",
+	"\x00\xdf\x18\x00\x0c\xe2\x18\x00",
+	"\x7c\x0d\x1e\x00\xd0\x0e\x1e\x00",
+	"\x94\x7c\x16\x00\xa0\x7f\x16\x00",
+	"\x04\xdf\x1d\x00\xd8\xe0\x1d\x00",
+	"\x70\x38\x28\x00\x24\x39\x28\x00",
+	"\x18\x80\x16\x00\x30\x81\x16\x00",
+	"\x58\x81\x16\x00\xc4\x84\x16\x00",
+	"\x8c\xe2\x18\x00\x64\xe7\x18\x00",
+	"\xa8\xe7\x18\x00\xd0\xe9\x18\x00",
+	"\x04\x85\x16\x00\xc4\x88\x16\x00",
+	"\x60\x81\x1f\x00\x24\x84\x1f\x00",
+	"\xf0\x88\x16\x00\x24\x8a\x16\x00",
+	"\x48\x53\x29\x00\x68\x53\x29\x00",
+	"\x04\xea\x18\x00\x08\xea\x18\x00",
+	"\x2c\xed\x22\x00\x40\xef\x22\x00",
+	"\x90\x8a\x16\x00\x3c\x8c\x16\x00",
+	"\xb8\x2a\x21\x00\xc4\x2d\x21\x00",
+	"\x0c\xea\x18\x00\xc8\xeb\x18\x00",
+	"\x30\xec\x18\x00\x6c\xf0\x18\x00",
+	"\x28\xdf\x24\x00\xbc\xdf\x24\x00",
+	"\xa4\xf0\x18\x00\x88\xf4\x18\x00",
+	"\x8c\x8c\x16\x00\x54\x91\x16\x00",
+	"\x08\xf5\x18\x00\xc4\xf5\x18\x00",
+	"\x44\x84\x1f\x00\xe0\x84\x1f\x00",
+	"\xc8\x91\x16\x00\xe4\x95\x16\x00",
+	"\x84\x3e\x28\x00\x90\x3f\x28\x00",
+	"\x94\x3f\x28\x00\x50\x40\x28\x00",
+	"\xdc\x40\x28\x00\x88\x42\x28\x00",
+	"\x14\x96\x16\x00\x94\x9b\x16\x00",
+	"\xb8\xde\x26\x00\x1c\xe0\x26\x00",
+	"\x70\xb6\x1b\x00\xd0\xb6\x1b\x00",
+	"\xdc\xb6\x1b\x00\x28\xba\x1b\x00",
+	"\x08\x9c\x16\x00\x20\x9d\x16\x00",
+	"\x0c\xbc\x1b\x00\x24\xbe\x1b\x00",
+	"\x60\x9d\x16\x00\x84\x9f\x16\x00",
+	"\x2c\xfb\x1d\x00\x00\x00\x00\x00",
+	"\x3c\x85\x1f\x00\x64\x87\x1f\x00",
+	"\xa8\xfb\x1d\x00\xc4\xfd\x1d\x00",
+	"\xe8\x9f\x16\x00\xc0\xa3\x16\x00",
+	"\xfc\xa3\x16\x00\xa8\xa5\x16\x00",
+	"\xe8\xed\x1b\x00\x04\xf1\x1b\x00",
+	"\x34\xe4\x24\x00\xc0\xe4\x24\x00",
+	"\x98\xc4\x1b\x00\xcc\xc6\x1b\x00",
+	"\x2c\xf1\x1b\x00\x88\xf1\x1b\x00",
+	"\x94\x2f\x21\x00\x0c\x72\x35\x00",
+	"\xc4\x8c\x1f\x00\x74\x8f\x1f\x00",
+	"\xc8\xc0\x16\x00\x64\x85\x36\x00",
+	"\x24\xef\x24\x00\x44\xef\x24\x00",
+	"\x8c\x31\x21\x00\x68\x33\x21\x00",
+	"\x7c\x49\x28\x00\x0c\x4b\x28\x00",
+	"\xd8\x8f\x1f\x00\xa4\x90\x1f\x00",
+	"\xc8\xa5\x16\x00\xbc\xa8\x16\x00",
+	"\x2c\x4c\x28\x00\x08\x4f\x28\x00",
+	"\x40\x4f\x28\x00\xcc\x4f\x28\x00",
+	"\xb4\x8b\x29\x00\x84\x8d\x29\x00",
+	"\xd4\x90\x1f\x00\x68\x96\x1f\x00",
+	"\x08\x70\x2a\x00\x14\x71\x2a\x00",
+	"\x00\x03\x23\x00\xe0\x03\x23\x00",
+	"\x5c\xa9\x16\x00\xd8\xad\x16\x00",
+	"\x28\xfb\x18\x00\x30\xfc\x18\x00",
+	"\x4c\xfc\x18\x00\x1c\xfe\x18\x00",
+	"\x4c\xfe\x18\x00\x18\x01\x19\x00",
+	"\x6c\xae\x16\x00\xa0\xb2\x16\x00",
+	"\xc8\x96\x1f\x00\x4c\x98\x1f\x00",
+	"\xd8\x0a\x1c\x00\xcc\x20\x1c\x00",
+	"\x5c\x37\x25\x00\xd4\x37\x25\x00",
+	"\x28\x3f\x27\x00\xbc\x40\x27\x00",
+	"\xf4\x3c\x21\x00\x50\x3d\x21\x00",
+	"\x18\x38\x25\x00\x1c\x3a\x25\x00",
+	"\xd8\x0e\x23\x00\xa0\x11\x23\x00",
+	"\xdc\x3e\x21\x00\xcc\x42\x21\x00",
+	"\xc8\x43\x21\x00\x40\x46\x21\x00",
+	"\x78\x46\x21\x00\x70\x70\x34\x00",
+	"\xb8\x28\x1c\x00\xb8\x2b\x1c\x00",
+	"\xb0\x12\x1e\x00\x0c\x16\x1e\x00",
+	"\x50\xf9\x26\x00\x8c\xf9\x26\x00",
+	"\x80\x13\x23\x00\x60\x14\x23\x00",
+	"\x94\x16\x1e\x00\x0c\x17\x1e\x00",
+	"\x44\x53\x21\x00\x7c\x57\x21\x00",
+	"\x2c\x4e\x25\x00\xfc\x4e\x25\x00",
+	"\x88\x14\x23\x00\x80\x15\x23\x00",
+	"\x34\x17\x1e\x00\x2c\x18\x1e\x00",
+	"\xa8\x15\x23\x00\x08\x17\x23\x00",
+	"\x2c\x4f\x25\x00\x90\x50\x25\x00",
+	"\x38\x58\x21\x00\x84\x59\x21\x00",
+	"\x3c\x17\x23\x00\x2c\x18\x23\x00",
+	"\x70\x18\x1e\x00\x00\x1a\x1e\x00",
+	"\xb8\x71\x29\x00\x58\x74\x29\x00",
+	"\x94\x74\x29\x00\x40\x16\x16\x00",
+	"\xc4\x8c\x2a\x00\x40\x16\x16\x00",
+	"\x30\x1a\x1e\x00\xbc\x1a\x1e\x00",
+	"\xec\xf0\x1f\x00\x40\x16\x16\x00",
+	"\x38\xf1\x1f\x00\x80\xf1\x1f\x00",
+	"\x00\x52\x25\x00\x60\x54\x25\x00",
+	"\x38\x03\x27\x00\x80\x03\x27\x00",
+	"\x14\x5a\x21\x00\xc8\x5e\x21\x00",
+	"\x5c\x56\x25\x00\x90\x59\x25\x00",
+	"\xac\x03\x27\x00\x7c\x05\x27\x00",
+	"\x84\xf1\x1f\x00\xb4\xf2\x1f\x00",
+	"\x00\x71\x28\x00\x24\x72\x28\x00",
+	"\xb8\x05\x27\x00\xec\x0d\x27\x00",
+	"\xa8\x5f\x21\x00\xcc\x62\x21\x00",
+	"\x20\x19\x23\x00\xe0\x1c\x23\x00",
+	"\x60\x63\x21\x00\x80\x65\x21\x00",
+	"\xf8\x1d\x23\x00\x00\x20\x23\x00",
+	"\x6c\x20\x23\x00\x74\x22\x23\x00",
+	"\xe0\x22\x23\x00\x0c\x7c\x36\x00",
+	"\x44\x18\x19\x00\x2c\x26\x19\x00",
+	"\x78\x2d\x1e\x00\x08\x2e\x1e\x00"
+]
 
-versionDict = {}
-for v in versions:
-    versionDict[v['name']] = v
-f2 = open('versions.json','w')
-json.dump(versionDict,f2,indent='\t')
-f2.close()
-
-###########################################
-
-actor_count = {
-    "OoT": 0x1D7,
-    "MM": 0x02B2
-}
-
-hardcoded_init_vars = {
-    "OoT": {
-        0x0: b'\x00\x00\x02\x00\x06\x00\x00\x35\x00\x01\x00\x00\x00\x00\x0A\x84\x80\x09\x7D\xA8\x80\x09\x7D\xF0\x80\x09\x7E\x30\x80\x09\x7E\x70', # Player
-        0x15: b'\x00\x15\x08\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x9C\x80\x01\x21\x8C\x80\x01\x27\xF4\x80\x01\x2F\x78\x80\x01\x35\xF8', # En_Item00
-        0x39: b'\x00\x39\x06\x00\x00\x00\x00\x10\x00\x01\x00\x00\x00\x00\x01\xB8\x80\x01\x16\xEC\x80\x01\x1A\x2C\x80\x01\x1F\x74\x80\x01\x20\x90' # En_A_Obj
-    },
-    "MM": {
-        0x0: b'\x00\x00\x02\x00\x86\x20\x00\x39\x00\x01\x00\x00\x00\x00\x0D\x78\x80\x16\x0A\xF8\x80\x16\x0B\x40\x80\x16\x0B\x80\x80\x16\x0B\xC0', # Player
-        0xE: b'\x00\x0E\x08\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\xA8\x80\x0A\x5D\x70\x80\x0A\x63\x7C\x80\x0A\x6B\x98\x80\x0A\x71\x28', # En_Item00
-        0x26: b'\x00\x26\x06\x00\x00\x00\x00\x09\x00\x01\x00\x00\x00\x00\x01\x94\x80\x0A\x5A\xC0\x80\x0A\x5B\x6C\x80\x0A\x5C\x60\x80\x0A\x5C\xB8' # En_A_Obj
-    }
-}
+actor_count = 0x1DB
 
 actors = {
-    "OoT": [{} for _ in range(actor_count["OoT"])],
-    "MM": [{} for _ in range(actor_count["MM"])]
+    "OoT3D": [{} for _ in range(actor_count)]
 }
 
-for v in versions:
-    print(v['name'])
-    f=open('roms/'+v['filename'],'rb')
-    rom = f.read()
-
-    for actorId in range(actor_count[v['game']]):
-        romStart, romEnd, ramStart, ramEnd, _, ramInitVars, _, allocType, _, _ = struct.unpack('>IIIIIIIhbb',rom[v['actortable']+0x20*actorId:v['actortable']+0x20*(actorId+1)])
-        overlaySize = ramEnd-ramStart
-        romInitVars = romStart+ramInitVars-ramStart
-        if 0 < romInitVars < 0x80000000:
-            initVars = rom[romInitVars:romInitVars+0x20]
-        elif ramInitVars > 0:
-            initVars = hardcoded_init_vars[v['game']][actorId]
-        else:
-            initVars = None
+if False:
+    with open("./code.bin", 'rb') as rom:
+        s = rom.read()
+        
+        for actorId in range(len(actor_strings_search)):
+            print(actorId)
+            addr = s.find(actor_strings_search[actorId])
+            actorId, actorType, room, flags, objectId, _, instanceSize, initPtr, destroyPtr, updatePtr, drawPtr = struct.unpack('<HBBIHHIIIII',s[addr-0x10:addr+0x10])
+            #print(hex(actorId), hex(actorType), hex(room), hex(flags), hex(objectId), hex(instanceSize), hex(init), hex(destroy), hex(update), hex(draw))
             
-        if initVars:
-            _,actorType,_,_,objectId,_,instanceSize,_,_,_,drawPtr = struct.unpack('>HBBIHHIIIII',initVars)
-            actorInfo = {'actorId':actorId,'actorType':actorType,'overlaySize':overlaySize, 'instanceSize':instanceSize, 'allocType':allocType, 'name':actor_names[v['game']][actorId], 'objectId':objectId,'drawPtr':drawPtr}
-        else:
-            actorInfo = {'name':actor_names[v['game']][actorId]}
-        actors[v['game']][actorId][v['name']] = actorInfo
-
-#for i in range(actor_count):
-#    if (actors[i]["N-1.0"]==actors[i]["N-1.1"]==actors[i]["P-1.0"]==actors[i]["N-1.2"]==actors[i]["P-1.1"]==
-#        actors[i]["J-GC-MQDisc"]==actors[i]["J-MQ"]==actors[i]["U-GC"]==actors[i]["U-MQ"]==actors[i]["P-GC"]==actors[i]["P-MQ"]==actors[i]["J-GC-CEDisc"]):
-#        actors[i] = {'ALL':actors[i]["N-1.0"]}
-#    elif (actors[i]["N-1.0"]==actors[i]["N-1.1"]==actors[i]["P-1.0"]==actors[i]["N-1.2"]==actors[i]["P-1.1"]) and (
-#        actors[i]["J-GC-MQDisc"]==actors[i]["J-MQ"]==actors[i]["U-GC"]==actors[i]["U-MQ"]==actors[i]["P-GC"]==actors[i]["P-MQ"]==actors[i]["J-GC-CEDisc"]):
-#        actors[i] = {'N64':actors[i]["N-1.0"],'GC':actors[i]["J-GC-MQDisc"]}
-#    else:
-#        pass
-
-f2 = open('actors.json','w')
-json.dump(actors,f2,indent='\t')
-f2.close()
-
-for v in actors['OoT'][0]:
-    f2 = open('csv/actors_%s.csv'%v,'w')
-    f2.write('Actor ID,Actor Name,Instance Size (without header),Overlay Size (without header),Instance Size (with header),Overlay Size (with header),Allocation Type,Object ID\n')
-    for i in range(len(actors['OoT'])):
-        if 'instanceSize' in actors['OoT'][i][v]:
-            instanceSize = actors['OoT'][i][v]['instanceSize']
-            overlaySize = actors['OoT'][i][v]['overlaySize']
-            while instanceSize % 0x10 > 0:
-                instanceSize += 1
-            while overlaySize % 0x10 > 0:
-                overlaySize += 1
-            headerSize = {'GC':0x10,'N64':0x30}[versionDict[v]['console']]
-            if overlaySize != 0:
-                f2.write("0x%04X,%s,0x%X,0x%X,0x%X,0x%X,%d,0x%04X\n"%(i,actors['OoT'][i][v]['name'],instanceSize,overlaySize,instanceSize+headerSize,overlaySize+headerSize,actors['OoT'][i][v]['allocType'],actors['OoT'][i][v]['objectId']))
-            else:
-                f2.write("0x%04X,%s,0x%X,,0x%X,,%d,0x%04X\n"%(i,actors['OoT'][i][v]['name'],instanceSize,instanceSize+headerSize,actors['OoT'][i][v]['allocType'],actors['OoT'][i][v]['objectId']))
-        else:
-            f2.write("0x%04X,%s,,,,,\n"%(i,actors['OoT'][i][v]['name']))
-    f2.close()
-
-#########################################################
-
-scene_count = {
-    "OoT": 0x65,
-    "MM": 0x71
-}
-
-scenes = {
-    "OoT": [{} for _ in range(scene_count["OoT"])],
-    "MM": [{} for _ in range(scene_count["MM"])]
-}
-
-min_setup_count = {
-    "OoT": 4,
-    "MM": 1
-}
-
-for v in versions:
-    print(v['name'])
-    f=open('roms/'+v['filename'],'rb')
-    rom = f.read()
-
-    for sceneId in range(scene_count[v['game']]):
-
-        scenes[v['game']][sceneId][v['name']] = [None] * min_setup_count[v['game']]
-
-        if v['game'] == 'MM':
-            sceneRomStart, sceneRomEnd, _, _ = struct.unpack('>IIII',rom[v['scenetable']+0x10*sceneId:v['scenetable']+0x10*(sceneId+1)])
-        else:
-            sceneRomStart, sceneRomEnd, _, _, _ = struct.unpack('>IIIII',rom[v['scenetable']+0x14*sceneId:v['scenetable']+0x14*(sceneId+1)])
-        #print('scene', hex(sceneId), hex(sceneRomStart), hex(sceneRomEnd))
-
-        if sceneRomStart==0 and sceneRomEnd==0:
-            continue # null entry
-
-        sceneAltHeaders = None
-        roomAltHeaders = {}
-
-        for setupId in range(min_setup_count[v['game']]):
-
-            #print('setup', hex(setupId))
-            if setupId == 0:
-                scenes[v['game']][sceneId][v['name']][setupId] = {'rooms':[],'transitionActors':[],'specialObject':0}
-                sceneHeaderStart = sceneRomStart
-            else:
-                if sceneAltHeaders and sceneAltHeaders[setupId-1]:
-                    scenes[v['game']][sceneId][v['name']][setupId] = {'rooms':[],'transitionActors':[],'specialObject':0}
-                    sceneHeaderStart = sceneRomStart + (sceneAltHeaders[setupId-1]&0x00FFFFFF)
-                else:
-                    scenes[v['game']][sceneId][v['name']][setupId] = None
-                    continue
+            actorInfo = {'actorId':actorId,'actorType':actorType,'room':room,'objectId':objectId,'instanceSize':instanceSize,'name':actorList[actorId][0],'description':actorList[actorId][1],'initPtr':initPtr,'destroyPtr':destroyPtr,'updatePtr':updatePtr,'drawPtr':drawPtr}
             
-            sceneHeaderCommand = None
-            sceneHeaderNum = 0
-            while sceneHeaderCommand != 0x14:
-                sceneHeaderCommand, sceneParam1, _, sceneParam2 = struct.unpack('>BBHI',rom[sceneHeaderStart+8*sceneHeaderNum:sceneHeaderStart+8*(sceneHeaderNum+1)])
+            actors["OoT3D"][actorId] = actorInfo
+        
+    f0 = open('actors.json','w')
+    f0.writelines(json.dumps(actors))
+    f0.close()
 
-                #print('cmd',hex(sceneHeaderCommand))
-                assert sceneHeaderCommand < 0x1F
-                if sceneHeaderCommand == 0x18: # Alternate Headers
-                    sceneSetupListStart = sceneRomStart + (sceneParam2&0x00FFFFFF)
-                    sceneAltHeaders = struct.unpack('>III', rom[sceneSetupListStart:sceneSetupListStart+0xC]) # we only care about setups 0-3
-                elif sceneHeaderCommand == 0x04: # Rooms
-                    for roomId in range(sceneParam1):
-                        roomListStart = sceneRomStart + (sceneParam2&0x00FFFFFF)
-                        roomRomStart, roomRomEnd = struct.unpack('>II',rom[roomListStart+8*roomId:roomListStart+8*(roomId+1)])
+###################
+#export scene data#
+###################
+if False:
+    versions = ["OoT3D-US", "OoT3D-US-MQ"]
+    
+    SceneList = [
+        ["ydan", "Inside the Deku Tree"],
+        ["ddan", "Dodongo's Cavern"],
+        ["bdan", "Inside Jabu-Jabu's Belly"],
+        ["bmori1", "Forest Temple"],
+        ["hidan", "Fire Temple"],
+        ["mizusin", "Water Temple"],
+        ["jyasinzou", "Spirit Temple"],
+        ["hakadan", "Shadow Temple"],
+        ["hakadan_ch", "Bottom of the Well"],
+        ["ice_doukutu", "Ice Cavern"],
+        ["ganon", "Ganon's Tower"],
+        ["men", "Gerudo Training Ground"],
+        ["gerudoway", "Thieves' Hideout"],
+        ["ganontika", "Inside Ganon's Castle"],
+        ["ganon_sonogo", "Ganon's Tower (Collapsing)"],
+        ["ganontikasonogo", "Inside Ganon's Castle (Collapsing)"],
+        ["takaraya", "Treasure Chest Shop"],
+        ["ydan_boss", "Gohma's Lair"],
+        ["ddan_boss", "King Dodongo's Lair"],
+        ["bdan_boss", "Barinade's Lair"],
+        ["moriboss", "Phantom Ganon's Lair"],
+        ["fire_bs", "Volvagia's Lair"],
+        ["mizusin_boss", "Morpha's Lair"],
+        ["jyasinzou_boss", "Twinrova's Lair & Iron Knuckle Mini-Boss Room"],
+        ["hakadan_boss", "Bongo Bongo's Lair"],
+        ["ganon_boss", "Ganondorf's Lair"],
+        ["ganon_final", "Ganondorf's Death Scene (Tower Escape Exterior)"],
+        ["entra_day", "Market Entrance (Child - Day)"],
+        ["entra_night", "Market Entrance (Child - Night)"],
+        ["entra_ruins", "Market Entrance (Ruins)"],
+        ["market_alley", "Back Alley (Day)"],
+        ["market_alley_n", "Back Alley (Night)"],
+        ["market_day", "Market (Child - Day)"],
+        ["market_night", "Market (Child - Night)"],
+        ["market_ruins", "Market (Ruins)"],
+        ["shrine", "Temple of Time Exterior (Day)"],
+        ["shrine_n", "Temple of Time Exterior (Night)"],
+        ["shrine_r", "Temple of Time Exterior (Ruins)"],
+        ["k_home", "Know-It-All Brothers' House"],
+        ["k_home3", "Twins' House"],
+        ["k_home4", "Mido's House"],
+        ["k_home5", "Saria's House"],
+        ["kakariko", "Carpenter Boss's House"],
+        ["kakariko_home3", "Back Alley House (Man in Green)"],
+        ["shop", "Bazaar"],
+        ["kokiri", "Kokiri Shop"],
+        ["shop_golon", "Goron Shop"],
+        ["zoora", "Zora Shop"],
+        ["shop_drag", "Kakariko Potion Shop"],
+        ["shop_alley", "Market Potion Shop"],
+        ["shop_night", "Bombchu Shop"],
+        ["shop_face", "Happy Mask Shop"],
+        ["link", "Link's House"],
+        ["kakariko_impa", "Back Alley House (Dog Lady)"],
+        ["stable", "Stable"],
+        ["labo", "Impa's House"],
+        ["hylia_labo", "Lakeside Laboratory"],
+        ["tent", "Carpenters' Tent"],
+        ["hut", "Gravekeeper's Hut"],
+        ["daiyousei_izumi", "Great Fairy's Fountain (Upgrades)"],
+        ["yousei_izumi_tate", "Fairy's Fountain (Healing Fairies)"],
+        ["yousei_izumi_yoko", "Great Fairy's Fountain (Spells)"],
+        ["kakusiana", "Grottos"],
+        ["hakaana", "Grave (Redead)"],
+        ["hakaana2", "Grave (Fairy's Fountain)"],
+        ["hakaana_ouke", "Royal Family's Tomb"],
+        ["syatekijyou", "Shooting Gallery"],
+        ["tokinoma", "Temple of Time"],
+        ["kenjyanoma", "Chamber of the Sages"],
+        ["hairal_niwa", "Castle Hedge Maze (Day)"],
+        ["hairal_niwa_n", "Castle Hedge Maze (Night)"],
+        ["hiral_demo", "Cutscene Map"],
+        ["hakasitarelay", "Dampé's Grave & Windmill"],
+        ["turibori", "Fishing Pond"],
+        ["nakaniwa", "Castle Courtyard"],
+        ["bowling", "Bombchu Bowling Alley"],
+        ["souko", "Lon Lon Ranch House & Tower"],
+        ["miharigoya", "Guard House"],
+        ["mahouya", "Granny's Potion Shop"],
+        ["ganon_demo", "Ganon's Tower Collapse & Battle Arena"],
+        ["kinsuta", "House of Skulltula"],
+        ["spot00", "Spot 00 - Hyrule Field"],
+        ["spot01", "Spot 01 - Kakariko Village"],
+        ["spot02", "Spot 02 - Graveyard"],
+        ["spot03", "Spot 03 - Zora's River"],
+        ["spot04", "Spot 04 - Kokiri Forest"],
+        ["spot05", "Spot 05 - Sacred Forest Meadow"],
+        ["spot06", "Spot 06 - Lake Hylia"],
+        ["spot07", "Spot 07 - Zora's Domain"],
+        ["spot08", "Spot 08 - Zora's Fountain"],
+        ["spot09", "Spot 09 - Gerudo Valley"],
+        ["spot10", "Spot 10 - Lost Woods"],
+        ["spot11", "Spot 11 - Desert Colossus"],
+        ["spot12", "Spot 12 - Gerudo's Fortress"],
+        ["spot13", "Spot 13 - Haunted Wasteland"],
+        ["spot15", "Spot 15 - Hyrule Castle"],
+        ["spot16", "Spot 16 - Death Mountain Trail"],
+        ["spot17", "Spot 17 - Death Mountain Crater"],
+        ["spot18", "Spot 18 - Goron City"],
+        ["spot20", "Spot 20 - Lon Lon Ranch"],
+        ["ganon_tou", "Ganon's Castle Exterior"],
+        ["test01", "Room 118 - Jungle Gym"],
+        ["besitu", "Room 116 - Ganondorf Test Room"],
+        ["depth_test", "Room 124 - Depth Test"],
+        ["syotes", "Room 120 - Stalfos Mini-Boss Room"],
+        ["syotes2", "Room 121 - Stalfos Boss Room"],
+        ["sutaru", "Room 122 - Sutaru"],
+        ["spot99", "Spot 99 - Hyrule Field (Title)"],
+        ["hairal_niwa2", "Room 125 - Castle Hedge Maze (Early)"],
+        ["sasatest", "Room 117 - Sasa Test"],
+        ["testroom", "Room 119 - Treasure Chest Room"]
+    ];
 
-                        roomData = {'actors':[],'objects':[]}
+    export_csv = False
+    export_json = False
 
-                        if setupId == 0:
-                            roomHeaderStart = roomRomStart
+    scenes = {
+        "OoT3D-US": [{} for _ in range(0x6F)],
+        "OoT3D-US-MQ": [{} for _ in range(0x6F)]
+    }
+
+
+    # Open Scene files
+    for version in versions:
+        for sceneId in range(len(SceneList)):
+            scene_name = SceneList[sceneId][0]
+            
+            if version == "OoT3D-US-MQ":
+                scene_path = "./scene/" + scene_name + "_dd_info.zsi"
+            else:
+                scene_path = "./scene/" + scene_name + "_info.zsi"
+            
+            scenes[version][sceneId] = [None] * 4
+            if os.path.isfile(scene_path) == False:
+                continue
+
+            with open(scene_path, 'rb') as f:
+                sceneAltHeaders = None
+                roomAltHeaders = {}
+
+                sceneFile = f.read()
+                
+                setupId = 0
+                for setupId in range(4):
+                    #print("setup "+str(setupId))
+                
+                    if setupId == 0:
+                        scenes[version][sceneId][setupId] = {'rooms':[],'transitionActors':[],'specialObject':0}
+                    else:
+                        if sceneAltHeaders and sceneAltHeaders[setupId-1]:
+                            scenes[version][sceneId][setupId] = {'rooms':[],'transitionActors':[],'specialObject':0}
+                            sceneHeaderStart = sceneAltHeaders[setupId-1]
                         else:
-                            assert(roomAltHeaders[roomId][setupId-1])
-                            roomHeaderStart = roomRomStart + (roomAltHeaders[roomId][setupId-1]&0x00FFFFFF)
+                            scenes[version][sceneId][setupId] = None
+                            continue
+                    
+                    sceneHeaderCommand = None
+                    sceneHeaderNum = 0
+                    while sceneHeaderCommand != 0x14:
+                        sceneHeaderCommand, sceneParam1, _, sceneParam2 = struct.unpack('<BBHI',sceneFile[0x10+8*sceneHeaderNum:0x10+8*(sceneHeaderNum+1)])
+                        #print(hex(sceneHeaderCommand), hex(sceneParam1), _, hex(sceneParam2))
                         
-                        roomHeaderCommand = None
-                        roomHeaderNum = 0
-                        while roomHeaderCommand != 0x14:
-                            roomHeaderCommand, roomParam1, _, roomParam2 = struct.unpack('>BBHI',rom[roomHeaderStart+8*roomHeaderNum:roomHeaderStart+8*(roomHeaderNum+1)])
-
-                            if roomHeaderCommand == 0x18: # Alternate Headers
-                                roomSetupListStart = roomRomStart + (roomParam2&0x00FFFFFF)
-                                roomAltHeaders[roomId] = struct.unpack('>III', rom[roomSetupListStart:roomSetupListStart+0xC]) # we only care about setups 0-3
-                            elif roomHeaderCommand == 0x0B: #Object List
-                                for objectNum in range(roomParam1):
-                                    objectListStart = roomRomStart + (roomParam2&0x00FFFFFF)
-                                    obj = struct.unpack('>H',rom[objectListStart+0x2*objectNum:objectListStart+0x2*(objectNum+1)])[0]
-                                    roomData['objects'].append(obj)
-                            elif roomHeaderCommand == 0x01: #Actor List
-                                for actorNum in range(roomParam1):
-                                    actorListStart = roomRomStart + (roomParam2&0x00FFFFFF)
-                                    if v['game'] == 'MM':
-                                        actorId, posX, posY, posZ, spawnTimeHi, _, spawnTimeLo, actorParams = struct.unpack('>HhhhHHHH',rom[actorListStart+0x10*actorNum:actorListStart+0x10*(actorNum+1)])
-                                        actorId &= 0xFFF
-                                        spawnTimeBits = ((spawnTimeHi & 0x7) << 7) | spawnTimeLo & 0x7F
-                                        spawnTime = [(spawnTimeBits>>x) & 1 for x in reversed(range(10))]
-                                        roomData['actors'].append({'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ),'spawnTime':spawnTime})
-                                    else:
-                                        actorId, posX, posY, posZ, _, _, _, actorParams = struct.unpack('>HhhhHHHH',rom[actorListStart+0x10*actorNum:actorListStart+0x10*(actorNum+1)])
-                                        roomData['actors'].append({'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ)})
-                            roomHeaderNum += 1
+                        assert sceneHeaderCommand < 0x1F
+                        if sceneHeaderCommand == 0x18: # Alternate Headers
+                            sceneSetupListStart = sceneParam2
+                            #print(hex(sceneSetupListStart))
                             
-                        scenes[v['game']][sceneId][v['name']][setupId]['rooms'].append(roomData)
-            
-                elif sceneHeaderCommand == 0x0E: # Transition Actors
-                    for transitionActorNum in range(sceneParam1):
-                        transitionActorListStart = sceneRomStart + (sceneParam2&0x00FFFFFF)
-                        frontRoom, _, backRoom, _, actorId, posX, posY, posZ, _, actorParams = struct.unpack('>BBBBHhhhHH',rom[transitionActorListStart+0x10*transitionActorNum:transitionActorListStart+0x10*(transitionActorNum+1)])
-                        scenes[v['game']][sceneId][v['name']][setupId]['transitionActors'].append({'frontRoom':frontRoom,'backRoom':backRoom,'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ)})
+                            sceneAltHeaders = struct.unpack('<III', sceneFile[0x10+sceneSetupListStart:0x10+sceneSetupListStart+0xC]) # we only care about setups 0-3
+                            #print sceneAltHeaders
+                            
+                            '''sceneAltHeaders = []
+                            
+                            setup = 0
+                            while setup < sceneParam1:
+                                sceneAltHeaders.append(struct.unpack('<I',sceneFile[0x10+sceneSetupListStart+0x4*setup:0x10+sceneSetupListStart+0x4*setup+4])[0])
+                                setup += 1'''
+                            
+                            #print(sceneAltHeaders)
+                            #for s in sceneAltHeaders:
+                            #    print(hex(s))
+                        elif sceneHeaderCommand == 0x04: # Rooms
+                            for roomId in range(sceneParam1):
+                                if version == "OoT3D-US-MQ":
+                                    roomPath="./scene/"+scene_name+"_"+str(roomId)+"_dd_info.zsi"
+                                else:
+                                    roomPath="./scene/"+scene_name+"_"+str(roomId)+"_info.zsi"
+                                f2=open(roomPath,'rb')
+                                #print("./scene/"+scene_name+"_"+str(roomId)+"_info.zsi")
+                                roomFile = f2.read()
+                                roomData = {'actors':[],'objects':[]}
+                                
+                                if setupId == 0:
+                                    roomHeaderStart = 0
+                                else:
+                                    assert(roomAltHeaders[roomId][setupId-1])
+                                    roomHeaderStart = roomAltHeaders[roomId][setupId-1]
+                                
+                                roomHeaderCommand = None
+                                roomHeaderNum = 0
+                                while roomHeaderCommand != 0x14:
+                                    roomHeaderCommand, roomParam1, _, roomParam2 = struct.unpack('<BBHI',roomFile[0x10+roomHeaderStart+8*roomHeaderNum:0x10+roomHeaderStart+8*(roomHeaderNum+1)])
+                                    #print(hex(roomHeaderCommand), hex(roomParam1), _, hex(roomParam2))
 
-                elif sceneHeaderCommand == 0x07: # Special Objects
-                    assert sceneParam2 in [0,2,3]
-                    scenes[v['game']][sceneId][v['name']][setupId]['specialObject'] = sceneParam2
-                
-                sceneHeaderNum += 1
-                
-            if sceneAltHeaders:
-                assert len(roomAltHeaders) == len(scenes[v['game']][sceneId][v['name']][setupId]['rooms'])
+                                    if roomHeaderCommand == 0x18: # Alternate Headers
+                                        roomSetupListStart = roomParam2
+                                        roomAltHeaders[roomId] = struct.unpack('<III', roomFile[0x10+roomSetupListStart:0x10+roomSetupListStart+0xC]) # we only care about setups 0-3
+                                        
+                                    elif roomHeaderCommand == 0x0B: #Object List
+                                        for objectNum in range(roomParam1):
+                                            objectListStart = roomParam2
+                                            obj = struct.unpack('<H',roomFile[0x10+objectListStart+0x2*objectNum:0x10+objectListStart+0x2*(objectNum+1)])[0]
+                                            roomData['objects'].append(obj)
+                                        
+                                    elif roomHeaderCommand == 0x01: #Actor List
+                                        for actorNum in range(roomParam1):
+                                            actorListStart = roomParam2
+                                            actorId, posX, posY, posZ, rotX, rotY, rotZ, actorParams = struct.unpack('<HhhhHHHH',roomFile[0x10+actorListStart+0x10*actorNum:0x10+actorListStart+0x10*(actorNum+1)])
+                                            if export_csv:
+                                                roomData['actors'].append({'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ),'rotation':(rotX,rotY,rotZ)})
+                                            else:
+                                                roomData['actors'].append({'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ)})
+                                    roomHeaderNum += 1
+                                    
+                                scenes[version][sceneId][setupId]['rooms'].append(roomData)
+                                
+                        elif sceneHeaderCommand == 0x0E: # Transition Actors
+                            for transitionActorNum in range(sceneParam1):
+                                transitionActorListStart = sceneParam2
+                                frontRoom, _, backRoom, _, actorId, posX, posY, posZ, rotY, actorParams = struct.unpack('<BBBBHHHHHH',sceneFile[0x10+transitionActorListStart+0x10*transitionActorNum:0x10+transitionActorListStart+0x10*(transitionActorNum+1)])
+                                if export_csv:
+                                    scenes[version][sceneId][setupId]['transitionActors'].append({'frontRoom':frontRoom,'backRoom':backRoom,'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ),'rotationY':posY})
+                                else:
+                                    scenes[version][sceneId][setupId]['transitionActors'].append({'frontRoom':frontRoom,'backRoom':backRoom,'actorId':actorId,'actorParams':actorParams,'position':(posX,posY,posZ)})
+                                
+                        elif sceneHeaderCommand == 0x07: # Special Objects
+                            assert sceneParam2 in [0,2,3]
+                            scenes[version][sceneId][setupId]['specialObject'] = sceneParam2
+                            
+                        sceneHeaderNum += 1
+                        
+                    if sceneAltHeaders:
+                        assert len(roomAltHeaders) == len(scenes[version][sceneId][setupId]['rooms'])
+                    else:
+                        assert len(roomAltHeaders) == 0
+            
+            print("Scene "+str(sceneId)+" completed...")
+
+    if export_json:
+        f3 = open('scenes.json','w')
+        f3.writelines(json.dumps(scenes))
+        f3.close()
+
+    if export_csv:
+        for version in versions:
+            if version == "OoT3D-US-MQ":
+                f4 = open('actors_by_area_mq.csv','w')
             else:
-                assert len(roomAltHeaders) == 0
+                f4 = open('actors_by_area.csv','w')
+            f4.write("scene,setup,room,actorId,posX,posY,posZ,rotX,rotY,rotZ,actorParams,frontRoom,backRoom,\n")
+            for sceneId in range(0, len(SceneList)):
+                for setup in range(0, 4):
+                    if scenes[version][sceneId][setup] == None:
+                        continue
+                    for t in scenes[version][sceneId][setup]["transitionActors"]:
+                        #print(t)
+                        f4.write(str(sceneId)+","+str(setup)+",-1,\""+"{:04X}".format(t["actorId"])+"\","+str(t["position"][0])+","+str(t["position"][1])+","+str(t["position"][2])+",0,"+str(t["rotationY"])+",0,\""+"{:04X}".format(t["actorParams"])+"\","+str(t["frontRoom"])+","+str(t["backRoom"])+",\n")
+                for setup in range(0, 4):
+                    if scenes[version][sceneId][setup] == None:
+                        continue
+                    for roomNum, room in enumerate(scenes[version][sceneId][setup]["rooms"]):
+                        for a in room["actors"]:
+                            f4.write(str(sceneId)+","+str(setup)+","+str(roomNum)+",\""+"{:04X}".format(a["actorId"])+"\","+str(a["position"][0])+","+str(a["position"][1])+","+str(a["position"][2])+","+str(a["rotation"][0])+","+str(a["rotation"][1])+","+str(a["rotation"][2])+",\""+"{:04X}".format(a["actorParams"])+"\",,,\n")
+                            
+            f4.close()
             
-#for i in range(scene_count):
-#    if (scenes[i]["N-1.0"]==scenes[i]["N-1.1"]==scenes[i]["P-1.0"]==scenes[i]["N-1.2"]==scenes[i]["P-1.1"]==scenes[i]["J-GC-MQDisc"]==scenes[i]["U-GC"]==scenes[i]["P-GC"]==scenes[i]["J-GC-CEDisc"]
-#        ==scenes[i]["J-MQ"]==scenes[i]["U-MQ"]==scenes[i]["P-MQ"]):
-#        scenes[i] = {'ALL':scenes[i]["N-1.0"]}
-#    elif (scenes[i]["N-1.0"]==scenes[i]["N-1.1"]==scenes[i]["P-1.0"]==scenes[i]["N-1.2"]==scenes[i]["P-1.1"]==scenes[i]["J-GC-MQDisc"]==scenes[i]["U-GC"]==scenes[i]["P-GC"]==scenes[i]["J-GC-CEDisc"]
-#          ) and (scenes[i]["J-MQ"]==scenes[i]["U-MQ"]==scenes[i]["P-MQ"]):
-#        scenes[i] = {'VANILLA':scenes[i]["N-1.0"],'MQ':scenes[i]["J-MQ"]}
-#    else:
-#        pass
-
-f2 = open('scenes.json','w')
-json.dump(scenes,f2,indent='\t')
-f2.close()
+            if version == "OoT3D-US-MQ":
+                f5 = open('objects_by_area_mq.csv','w')
+            else:
+                f5 = open('objects_by_area.csv','w')
+            f5.write("scene,setup,room,object,\n")
+            for sceneId in range(0, len(SceneList)):
+                for setup in range(0, 4):
+                    if scenes[version][sceneId][setup] == None:
+                        continue
+                    for roomNum, room in enumerate(scenes[version][sceneId][setup]["rooms"]):
+                        for o in room["objects"]:
+                            f5.write(str(sceneId)+","+str(setup)+","+str(roomNum)+",\""+"{:04X}".format(o)+"\",\n")
+            f5.close()

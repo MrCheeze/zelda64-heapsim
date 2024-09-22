@@ -33,12 +33,7 @@ class GameState:
         self.heldActor = None
 
     def loadScene(self, sceneId, setupId, roomId, dayNumber=None):
-        if 'ALL' in sceneInfo[self.game][sceneId]:
-            self.setupData = sceneInfo[self.game][sceneId]['ALL'][setupId]
-        elif self.game in sceneInfo[self.game][sceneId]:
-            self.setupData = sceneInfo[self.game][sceneId][self.game][setupId]
-        else:
-            self.setupData = sceneInfo[self.game][sceneId][self.version][setupId]
+        self.setupData = sceneInfo[self.version][sceneId]["setups"][setupId]
         self.sceneId = sceneId
         self.setupId = setupId
         self.dayNumber = dayNumber
@@ -54,13 +49,8 @@ class GameState:
 
         self.actorDefs = {}
         self.actorStates = {}
-        for actorId in range(len(actorInfo[self.game])):
-            if 'ALL' in actorInfo[self.game][actorId]:
-                actor = actorInfo[self.game][actorId]['ALL']
-            elif self.console in actorInfo[self.game][actorId]:
-                actor = actorInfo[self.game][actorId][self.console]
-            else:
-                actor = actorInfo[self.game][actorId][self.version]
+        for actorId in range(len(actorInfo[self.version])):
+            actor = actorInfo[self.version][actorId]
             self.actorDefs[actorId] = actor
 
         self.ram = {}
@@ -74,7 +64,10 @@ class GameState:
             self.allocActor(mmactors.En_Elf, 'ALL') # Navi
         else:
             self.allocActor(actors.Player, 'ALL') # Link
-            self.alloc(0x2010, 'Get Item Object')
+            if self.console == "3DS":
+                self.alloc(0x10000, 'Get Item Object')
+            else:
+                self.alloc(0x2010, 'Get Item Object')
             self.allocActor(actors.En_Elf, 'ALL') # Navi
             if self.flags['spawnFromGameOver']:
                 nl = self.allocActor(actors.Magic_Dark, 'ALL') # Nayru's Love for 1 frame after game over
@@ -163,8 +156,9 @@ class GameState:
             
         for node in self.heap():
             if not node.free and node.rooms != 'ALL':
-                if node.addr in forceToStayLoaded:
+                if node.addr in forceToStayLoaded or getattr(node, 'delayUnloading', False):
                     node.rooms = 'FORCE_STAY_LOADED'
+                    node.delayUnloading = False
                     continue
                 for actorRoomId in node.rooms:
                     if actorRoomId in self.loadedRooms:
@@ -182,7 +176,7 @@ class GameState:
         actorState = self.actorStates[actorId]
         actorDef = self.actorDefs[actorId]
 
-        if actorState['numLoaded'] == 0 and actorDef['overlaySize'] and actorDef['allocType']==0:
+        if self.console != "3DS" and actorState['numLoaded'] == 0 and actorDef['overlaySize'] and actorDef['allocType']==0:
             overlayNode = self.alloc(actorDef['overlaySize'], 'Overlay %04X %s'%(actorId,actorDef['name']))
             actorState['loadedOverlay'] = overlayNode.addr
 
@@ -251,7 +245,7 @@ class GameState:
             actorDef = self.actorDefs[node.actorId]
             actorState = self.actorStates[node.actorId]
             actorState['numLoaded'] -= 1
-            if actorState['numLoaded'] == 0 and actorDef['overlaySize'] and actorDef['allocType']==0:
+            if self.console != "3DS" and actorState['numLoaded'] == 0 and actorDef['overlaySize'] and actorDef['allocType']==0:
                 self.dealloc(actorState['loadedOverlay'])
 
             if node.parent:
@@ -315,6 +309,11 @@ class GameState:
                 node.rooms = 'ALL'
                 if self.actorStates[node.actorId]['numLoaded'] > 1 and node.actorParams != 0x0004:
                     kill = True
+            
+            elif node.actorId == actors.En_Niw:
+                node.rooms = 'ALL'
+                if self.actorStates[node.actorId]['numLoaded'] > 2:
+                    kill = True
 
             elif node.actorId == actors.Door_Warp1 and node.actorParams == 0x0006:
                 kill = True
@@ -337,6 +336,9 @@ class GameState:
                     kill = True
 
             elif node.actorId == actors.En_Owl and self.sceneId == 0x5B and (not self.flags['lullaby']):
+                kill = True
+
+            elif node.actorId == actors.En_Owl and self.sceneId == 0x54 and (not self.flags['lullaby']): # zora river owl - this logic is not quite right
                 kill = True
 
             elif node.actorId in [actors.Obj_Bombiwa, actors.En_Wonder_Talk2]:
@@ -366,6 +368,9 @@ class GameState:
                 
             elif node.actorId in [actors.Obj_Mure, actors.Obj_Mure2, actors.Obj_Mure3]:
                 node.spawnedChildren = ()
+                if node.actorId == actors.Obj_Mure:
+                    if node.actorParams & 0x1F == 4: # butte
+                        node.childCount = 3
                 if node.actorId == actors.Obj_Mure2:
                     if node.actorParams & 3 == 1: # bushes
                         node.childCount = 12
@@ -411,6 +416,17 @@ class GameState:
         if self.game == "OoT":
             if node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and not isFirstLoad:
                 self.allocActor(actors.En_Elf, rooms=node.rooms)
+            #if node.actorId == actors.Obj_Mure and node.actorParams & 0x1F == 4 and self.sceneId==0x54 and 1 in self.loadedRooms and isFirstLoad:
+            #    self.allocMultipleActors(actors.En_Butfte, node.childCount, tuple(node.rooms), 0x0000, (0,0,0), node.addr)
+            
+            #elif node.actorId == actors.En_Fr and node.actorParams == 0x0004:
+            #    node.delayUnloading = True
+            
+            #elif node.actorId == actors.En_Wood02 and node.actorParams == 0x0201:
+            #    node.delayUnloading = True
+            
+            elif node.actorId == actors.En_Okuta and (node.addr == 0x0990A4E1 or node.addr == 0x09907C30):
+                node.delayUnloading = True
 
         else: # MM
             if node.actorId == mmactors.En_Holl:
@@ -447,7 +463,7 @@ class GameState:
             for room in self.loadedRooms:
                 availableActions.add(('unloadRoomsExcept', room))
 
-        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish,actors.En_Boom,actors.En_Item00,actors.En_Ishi,actors.En_Kusa,actors.Arms_Hook,actors.En_Arrow):
+        for actorId in (actors.En_M_Thunder,actors.En_Bom,actors.En_Bom_Chu,actors.En_Insect,actors.En_Fish,actors.En_Boom,actors.En_Item00,actors.En_Ishi,actors.En_Kusa,actors.Arms_Hook,actors.En_Arrow,actors.En_Butte):
             if actorId not in self.actorStates:
                 self.actorStates[actorId] = {'numLoaded':0}
 
@@ -525,6 +541,13 @@ class GameState:
                         if node.actorId == actors.En_Kanban:
                             availableActions.add(('allocActor', actors.En_Kanban, tuple(node.rooms)))
 
+                    if node.actorId == actors.Obj_Mure:
+                        if node.spawnedChildren:
+                          if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
+                            availableActions.add(('unloadChildren', node.addr))
+                        else:
+                            if node.actorParams & 0x1F == 4: # butte
+                                availableActions.add(('allocMultipleActors', actors.En_Butte, node.childCount, tuple(node.rooms), 0x0000, (0,0,0), node.addr))
                     if node.actorId == actors.Obj_Mure2:
                         if node.spawnedChildren:
                           if self.actorStates[actors.En_Boom]['numLoaded'] < 1: # hmm
