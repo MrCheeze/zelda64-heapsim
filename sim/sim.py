@@ -363,7 +363,11 @@ class GameState:
                 
             elif node.actorId in [actors.En_Ko, actors.En_Md, actors.En_Sa] and isFirstLoad:
                 self.allocActor(actors.En_Elf, rooms=node.rooms)
-                
+
+            elif node.actorId in [actors.Obj_Makeoshihiki]:
+                self.allocActor(actors.Obj_Oshihiki, rooms=node.rooms)
+                node.spawnedChildren = ()
+
             elif node.actorId in [actors.Obj_Mure, actors.Obj_Mure2, actors.Obj_Mure3]:
                 node.spawnedChildren = ()
                 if node.actorId == actors.Obj_Mure2:
